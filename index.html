@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>КАРУСЕЛЬ — AI генератор постов за 60 секунд</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #39FF14;
+  --red: #FF1A1A;
+  --yellow: #FFD600;
+  --bg: #050505;
+  --bg2: #0a0a0a;
+  --bg3: #0f0f0f;
+  --border: #1a1a1a;
+  --text: #e8e8e8;
+  --muted: #555;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* ── SCANLINE OVERLAY ── */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.15) 2px, rgba(0,0,0,.15) 4px);
+  pointer-events:none;
+  z-index:9999;
+  opacity:.4;
+}
+
+/* ── NAV ── */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(5,5,5,.92);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  padding:0 24px;
+  display:flex;align-items:center;gap:32px;height:56px;
+}
+.nav-logo {
+  font-family:'Anton',sans-serif;
+  font-size:22px;letter-spacing:.15em;
+  color:var(--green);
+  text-shadow:0 0 30px rgba(57,255,20,.5);
+  text-decoration:none;
+}
+.nav-links { display:flex;gap:24px;margin-left:auto; }
+.nav-links a {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:600;letter-spacing:.1em;
+  color:var(--muted);text-decoration:none;text-transform:uppercase;
+  transition:color .2s;
+}
+.nav-links a:hover { color:var(--green); }
+.nav-cta {
+  background:var(--green);color:#000;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:9px 20px;border-radius:4px;text-decoration:none;
+  box-shadow:0 0 20px rgba(57,255,20,.3);
+  transition:box-shadow .2s,transform .1s;
+}
+.nav-cta:hover { box-shadow:0 0 40px rgba(57,255,20,.6);transform:translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:100px 24px 60px;
+  position:relative;
+  overflow:hidden;
+}
+.hero-grid {
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(57,255,20,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57,255,20,.04) 1px, transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 50%, black 0%, transparent 100%);
+}
+.hero-glow {
+  position:absolute;
+  width:600px;height:600px;
+  background:radial-gradient(circle, rgba(57,255,20,.06) 0%, transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-60%);
+  pointer-events:none;
+}
+.hero-badge {
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(57,255,20,.08);
+  border:1px solid rgba(57,255,20,.25);
+  border-radius:2px;
+  padding:6px 14px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--green);
+  margin-bottom:28px;
+}
+.hero-badge::before { content:'●';animation:blink 1.2s infinite;font-size:8px; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+
+.hero h1 {
+  font-family:'Anton',sans-serif;
+  font-size:clamp(56px,9vw,120px);
+  line-height:.92;
+  letter-spacing:-.01em;
+  text-align:center;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.hero h1 .accent { color:var(--green);text-shadow:0 0 60px rgba(57,255,20,.4); }
+.hero h1 .red { color:var(--red);text-shadow:0 0 40px rgba(255,26,26,.4); }
+
+.hero-sub {
+  font-size:18px;font-weight:400;color:#888;
+  text-align:center;max-width:520px;
+  margin:24px auto 48px;
+  line-height:1.6;
+}
+.hero-sub strong { color:var(--text);font-weight:600; }
+
+.hero-actions { display:flex;gap:12px;flex-wrap:wrap;justify-content:center; }
+
+.btn-primary {
+  background:var(--green);color:#000;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:16px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:16px 36px;border-radius:4px;border:none;cursor:pointer;
+  box-shadow:0 0 30px rgba(57,255,20,.35);
+  transition:all .2s;text-decoration:none;display:inline-block;
+}
+.btn-primary:hover { box-shadow:0 0 60px rgba(57,255,20,.6);transform:translateY(-2px); }
+
+.btn-secondary {
+  background:transparent;color:var(--text);
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:15px 36px;border-radius:4px;border:1px solid #2a2a2a;cursor:pointer;
+  transition:all .2s;text-decoration:none;display:inline-block;
+}
+.btn-secondary:hover { border-color:#444;background:rgba(255,255,255,.03); }
+
+/* ── STATS BAR ── */
+.stats {
+  background:var(--bg2);
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  padding:24px;
+  display:flex;justify-content:center;gap:64px;flex-wrap:wrap;
+}
+.stat { text-align:center; }
+.stat-num {
+  font-family:'Anton',sans-serif;
+  font-size:36px;color:var(--green);
+  text-shadow:0 0 20px rgba(57,255,20,.3);
+  display:block;
+}
+.stat-label {
+  font-size:12px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin-top:2px;
+}
+
+/* ── SECTION ── */
+section { padding:80px 24px;max-width:1100px;margin:0 auto; }
+.section-label {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--green);margin-bottom:12px;
+}
+.section-title {
+  font-family:'Anton',sans-serif;
+  font-size:clamp(36px,5vw,64px);
+  line-height:.95;text-transform:uppercase;
+  margin-bottom:16px;
+}
+.section-sub { font-size:16px;color:#666;max-width:480px;line-height:1.7; }
+
+/* ── HOW IT WORKS ── */
+.steps {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:2px;margin-top:56px;
+  background:var(--border);
+  border:1px solid var(--border);
+  border-radius:6px;overflow:hidden;
+}
+.step {
+  background:var(--bg2);
+  padding:32px 28px;
+  position:relative;
+}
+.step-num {
+  font-family:'Anton',sans-serif;font-size:48px;
+  color:rgba(57,255,20,.12);
+  line-height:1;margin-bottom:16px;
+  display:block;
+}
+.step h3 {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:18px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;margin-bottom:8px;
+}
+.step p { font-size:14px;color:#666;line-height:1.6; }
+.step-accent { color:var(--green); }
+
+/* ── PRESETS GRID ── */
+#generator { max-width:1100px;margin:0 auto;padding:80px 24px; }
+
+.presets-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:12px;
+  margin:40px 0;
+}
+
+.preset-card {
+  border:2px solid transparent;
+  border-radius:8px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:all .25s;
+  position:relative;
+  background:var(--bg2);
+}
+.preset-card:hover { transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.6); }
+.preset-card.selected { border-color:var(--green);box-shadow:0 0 30px rgba(57,255,20,.2); }
+.preset-card.selected .preset-check { opacity:1; }
+
+.preset-thumb {
+  height:200px;
+  display:flex;flex-direction:column;
+  padding:20px;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Preset 1 — Breaking News */
+.p-news { background:#0a0a0a; }
+.p-news::before {
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  opacity:.3;
+}
+.p-news .p-badge { background:#FF1A1A;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;padding:3px 8px;display:inline-block;margin-bottom:8px; }
+.p-news .p-title { font-family:'Anton',sans-serif;font-size:26px;color:#fff;line-height:.95;text-transform:uppercase; }
+.p-news .p-title span { background:#FF1A1A;padding:0 4px; }
+.p-news .p-body { font-size:11px;color:#bbb;margin-top:8px;line-height:1.4; }
+.p-news .p-tag { position:absolute;bottom:14px;right:14px;background:#FF1A1A;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:4px 10px; }
+
+/* Preset 2 — Cyber Tech */
+.p-cyber { background:linear-gradient(135deg,#040d1a 0%,#071428 100%); }
+.p-cyber .p-title { font-family:'Anton',sans-serif;font-size:24px;color:#fff;line-height:.95;text-transform:uppercase; }
+.p-cyber .p-title .hl { color:#00BFFF; }
+.p-cyber .p-body { font-size:11px;color:#7ba8c4;margin-top:8px;line-height:1.4; }
+.p-cyber .p-tag { position:absolute;bottom:14px;right:14px;background:rgba(0,191,255,.15);border:1px solid rgba(0,191,255,.4);color:#00BFFF;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:4px 10px; }
+.p-cyber::after { content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(0,191,255,.05));pointer-events:none; }
+
+/* Preset 3 — Neon Dark */
+.p-neon { background:#060606; }
+.p-neon .p-title { font-family:'Anton',sans-serif;font-size:24px;color:#39FF14;line-height:.95;text-transform:uppercase;text-shadow:0 0 20px rgba(57,255,20,.5); }
+.p-neon .p-body { font-size:11px;color:#555;margin-top:8px;line-height:1.4; }
+.p-neon .p-tag { position:absolute;bottom:14px;right:14px;background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.3);color:#39FF14;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:4px 10px; }
+
+/* Preset 4 — Clean White */
+.p-clean { background:#f5f5f5; }
+.p-clean .p-title { font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#111;line-height:.95;text-transform:uppercase; }
+.p-clean .p-body { font-size:11px;color:#666;margin-top:8px;line-height:1.4; }
+.p-clean .p-tag { position:absolute;bottom:14px;right:14px;background:#111;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:4px 10px; }
+
+/* Preset 5 — Gold Business */
+.p-gold { background:linear-gradient(135deg,#0a0800 0%,#130f00 100%); }
+.p-gold .p-title { font-family:'Anton',sans-serif;font-size:24px;color:#FFD600;line-height:.95;text-transform:uppercase;text-shadow:0 0 20px rgba(255,214,0,.3); }
+.p-gold .p-body { font-size:11px;color:#776a2a;margin-top:8px;line-height:1.4; }
+.p-gold .p-tag { position:absolute;bottom:14px;right:14px;background:rgba(255,214,0,.1);border:1px solid rgba(255,214,0,.3);color:#FFD600;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:4px 10px; }
+
+/* Preset 6 — Gradient Pop */
+.p-pop { background:linear-gradient(135deg,#1a0030 0%,#0d0020 100%); }
+.p-pop .p-title { font-family:'Anton',sans-serif;font-size:24px;background:linear-gradient(90deg,#FF6B6B,#FF8E53,#FFD93D);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:.95;text-transform:uppercase; }
+.p-pop .p-body { font-size:11px;color:#6b5080;margin-top:8px;line-height:1.4; }
+.p-pop .p-tag { position:absolute;bottom:14px;right:14px;background:linear-gradient(90deg,#FF6B6B,#FFD93D);color:#000;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:4px 10px; }
+
+.preset-check {
+  position:absolute;top:10px;right:10px;
+  width:24px;height:24px;background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .2s;font-size:12px;color:#000;font-weight:700;
+}
+
+.preset-info {
+  padding:14px 16px;
+  border-top:1px solid var(--border);
+}
+.preset-name {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:15px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text);
+}
+.preset-desc { font-size:12px;color:var(--muted);margin-top:2px; }
+
+/* ── PROMPT AREA ── */
+.prompt-wrap {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  margin:32px 0;
+  transition:border-color .2s;
+}
+.prompt-wrap:focus-within { border-color:rgba(57,255,20,.4); }
+
+.prompt-header {
+  padding:14px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.prompt-header-label {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);
+}
+
+textarea#prompt {
+  width:100%;min-height:110px;
+  background:transparent;border:none;outline:none;
+  color:var(--text);font-family:'Barlow',sans-serif;font-size:15px;line-height:1.6;
+  padding:20px;resize:none;
+}
+textarea#prompt::placeholder { color:#333; }
+
+.prompt-footer {
+  padding:12px 20px;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.prompt-footer-label {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);
+}
+
+/* FORMAT PILLS */
+.format-pills { display:flex;gap:6px; }
+.format-pill {
+  background:#111;border:1px solid #222;color:#666;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.06em;
+  padding:6px 14px;border-radius:3px;cursor:pointer;
+  transition:all .15s;-webkit-user-select:none;user-select:none;
+}
+.format-pill.active { background:rgba(57,255,20,.08);border-color:rgba(57,255,20,.3);color:var(--green); }
+
+/* SLIDES COUNT */
+.slides-pills { display:flex;gap:6px; }
+.slides-pill {
+  background:#111;border:1px solid #222;color:#666;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;
+  width:34px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:3px;cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none;
+}
+.slides-pill.active { background:rgba(57,255,20,.08);border-color:rgba(57,255,20,.3);color:var(--green); }
+
+/* ── GENERATE BUTTON ── */
+.generate-btn {
+  width:100%;
+  background:var(--green);color:#000;
+  font-family:'Anton',sans-serif;
+  font-size:24px;letter-spacing:.08em;text-transform:uppercase;
+  padding:22px;border:none;border-radius:6px;cursor:pointer;
+  box-shadow:0 0 40px rgba(57,255,20,.25);
+  transition:all .2s;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+}
+.generate-btn:hover { box-shadow:0 0 80px rgba(57,255,20,.5);transform:translateY(-2px); }
+.generate-btn:active { transform:translateY(0); }
+.generate-btn .arrow { font-size:20px;transition:transform .2s; }
+.generate-btn:hover .arrow { transform:translateX(6px); }
+
+/* LOADING STATE */
+.generate-btn.loading {
+  background:#0d2200;color:var(--green);border:1px solid rgba(57,255,20,.3);
+  box-shadow:0 0 40px rgba(57,255,20,.1);
+}
+.generate-btn.loading::after {
+  content:'';
+  position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(57,255,20,.1),transparent);
+  animation:shimmer 1.5s infinite;
+}
+@keyframes shimmer { to { left:100%; } }
+
+/* ── PREVIEW SECTION ── */
+#preview-section {
+  display:none;
+  max-width:1100px;margin:0 auto;padding:0 24px 80px;
+}
+#preview-section.visible { display:block; }
+
+.preview-header {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;
+  flex-wrap:wrap;gap:12px;
+}
+.preview-title {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--muted);
+}
+.preview-actions { display:flex;gap:8px; }
+
+.preview-slides {
+  display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;
+  scrollbar-width:thin;scrollbar-color:#2a2a2a transparent;
+}
+.preview-slide {
+  flex-shrink:0;width:220px;height:275px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:6px;overflow:hidden;position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.preview-slide .wm {
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.6);
+  font-family:'Anton',sans-serif;font-size:18px;letter-spacing:.2em;
+  color:rgba(255,255,255,.15);transform:rotate(-30deg);pointer-events:none;
+  z-index:2;user-select:none;
+}
+.slide-num {
+  position:absolute;top:10px;left:10px;
+  background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.2);
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  color:var(--green);padding:3px 8px;
+}
+
+/* ── PRICING ── */
+#pricing { max-width:1100px;margin:0 auto;padding:80px 24px; }
+.price-grid {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:12px;margin-top:48px;
+}
+.price-card {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:36px 32px;
+  position:relative;overflow:hidden;
+}
+.price-card.featured {
+  border-color:rgba(57,255,20,.3);
+  background:linear-gradient(135deg,rgba(57,255,20,.03),rgba(57,255,20,.01));
+}
+.price-card.featured::before {
+  content:'ПОПУЛЯРНЫЙ';
+  position:absolute;top:16px;right:-28px;
+  background:var(--green);color:#000;
+  font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;
+  padding:4px 40px;transform:rotate(35deg);
+}
+.price-name {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px;
+}
+.price-amount {
+  font-family:'Anton',sans-serif;
+  font-size:56px;color:var(--text);line-height:1;
+  margin-bottom:4px;
+}
+.price-amount span { font-size:24px;color:var(--muted);vertical-align:top;padding-top:10px;display:inline-block; }
+.price-period { font-size:13px;color:var(--muted);margin-bottom:28px; }
+.price-features { list-style:none;margin-bottom:32px; }
+.price-features li {
+  font-size:14px;color:#888;padding:8px 0;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.price-features li::before { content:'→';color:var(--green);font-weight:700; }
+.price-features li.yes { color:var(--text); }
+.price-btn {
+  width:100%;padding:14px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  border-radius:4px;border:1px solid #2a2a2a;
+  background:transparent;color:var(--text);cursor:pointer;
+  transition:all .2s;
+}
+.price-btn:hover { border-color:#444;background:rgba(255,255,255,.03); }
+.price-btn.primary {
+  background:var(--green);color:#000;border-color:var(--green);
+  box-shadow:0 0 20px rgba(57,255,20,.2);
+}
+.price-btn.primary:hover { box-shadow:0 0 40px rgba(57,255,20,.4); }
+
+/* ── FOOTER ── */
+footer {
+  background:var(--bg2);
+  border-top:1px solid var(--border);
+  padding:40px 24px;
+  text-align:center;
+}
+.footer-logo {
+  font-family:'Anton',sans-serif;font-size:28px;
+  color:var(--green);text-shadow:0 0 20px rgba(57,255,20,.3);
+  letter-spacing:.15em;display:block;margin-bottom:12px;
+}
+.footer-text { font-size:13px;color:var(--muted); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  nav { padding:0 16px; }
+  .nav-links { display:none; }
+  .hero { padding:90px 16px 50px; }
+  .stats { gap:32px; }
+  section,#generator,#preview-section,#pricing { padding-left:16px;padding-right:16px; }
+}
+
+/* ── ANIMATIONS ── */
+.fade-in {
+  opacity:0;transform:translateY(20px);
+  animation:fadeIn .6s ease forwards;
+}
+@keyframes fadeIn { to { opacity:1;transform:translateY(0); } }
+
+.fade-in:nth-child(1){animation-delay:.1s}
+.fade-in:nth-child(2){animation-delay:.2s}
+.fade-in:nth-child(3){animation-delay:.3s}
+
+/* ── SECTION DIVIDER ── */
+.divider {
+  height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);
+  max-width:1100px;margin:0 auto;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">КАРУСЕЛЬ</a>
+  <div class="nav-links">
+    <a href="#generator">Создать</a>
+    <a href="#pricing">Цены</a>
+    <a href="carousel_designer.html">Конструктор</a>
+  </div>
+  <a class="nav-cta" href="#generator">Попробовать бесплатно</a>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+
+  <div class="hero-badge">AI генератор контента</div>
+
+  <h1 class="fade-in">
+    КАРУСЕЛЬ<br>
+    <span class="accent">ЗА</span> <span class="red">60</span><br>
+    СЕКУНД
+  </h1>
+
+  <p class="hero-sub fade-in">
+    Превращаем любой текст, видео или идею в
+    <strong>профессиональную карусель для Instagram</strong> —
+    автоматически, без дизайнера
+  </p>
+
+  <div class="hero-actions fade-in">
+    <a class="btn-primary" href="#generator">Создать карусель →</a>
+    <a class="btn-secondary" href="carousel_designer.html">Конструктор</a>
+  </div>
+</div>
+
+<!-- ── STATS ── -->
+<div class="stats">
+  <div class="stat">
+    <span class="stat-num">60с</span>
+    <span class="stat-label">время генерации</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">6+</span>
+    <span class="stat-label">стилей оформления</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">5</span>
+    <span class="stat-label">языков</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">4:5</span>
+    <span class="stat-label">форматов слайдов</span>
+  </div>
+</div>
+
+<!-- ── HOW IT WORKS ── -->
+<section>
+  <div class="section-label">Как это работает</div>
+  <div class="section-title">ЧЕТЫРЕ<br>ШАГА</div>
+
+  <div class="steps">
+    <div class="step">
+      <span class="step-num">01</span>
+      <h3>Выбери <span class="step-accent">стиль</span></h3>
+      <p>Breaking News, Cyber Tech, Neon Dark и другие. Или позволь AI выбрать самостоятельно.</p>
+    </div>
+    <div class="step">
+      <span class="step-num">02</span>
+      <h3>Опиши <span class="step-accent">тему</span></h3>
+      <p>Напиши промпт, вставь ссылку на Reels/YouTube или введи текст статьи.</p>
+    </div>
+    <div class="step">
+      <span class="step-num">03</span>
+      <h3>AI <span class="step-accent">генерирует</span></h3>
+      <p>Нейросеть создаёт тексты, подбирает изображения и верстает каждый слайд.</p>
+    </div>
+    <div class="step">
+      <span class="step-num">04</span>
+      <h3>Скачай <span class="step-accent">результат</span></h3>
+      <p>Получи готовую карусель в высоком качестве. Редактируй любой слайд вручную.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── GENERATOR ── -->
+<div id="generator">
+  <div class="section-label">Генератор</div>
+  <div class="section-title">ВЫБЕРИ<br><span style="color:var(--green)">СТИЛЬ</span></div>
+  <p class="section-sub">Каждый стиль — готовый визуальный язык. Кликни чтобы выбрать.</p>
+
+  <div class="presets-grid">
+
+    <div class="preset-card" data-preset="news" onclick="selectPreset(this)">
+      <div class="preset-thumb p-news">
+        <div class="p-badge">● LIVE</div>
+        <div class="p-title">$250 000 <span>ЗА ВЫЛЕТ</span></div>
+        <div class="p-body">Эвакуация из Дубая бьёт все финансовые рекорды...</div>
+        <div class="p-tag">BREAKING NEWS</div>
+      </div>
+      <div class="preset-check">✓</div>
+      <div class="preset-info">
+        <div class="preset-name">Breaking News</div>
+        <div class="preset-desc">Ч/б фото · Красный акцент · Anton · LIVE бейджи</div>
+      </div>
+    </div>
+
+    <div class="preset-card" data-preset="cyber" onclick="selectPreset(this)">
+      <div class="preset-thumb p-cyber">
+        <div class="p-title">ЭВОЛЮЦИЯ <span class="hl">СВОБОДЫ</span></div>
+        <div class="p-body">Сначала заблокировали соцсети, потом мессенджеры...</div>
+        <div class="p-tag">CYBER TECH</div>
+      </div>
+      <div class="preset-check">✓</div>
+      <div class="preset-info">
+        <div class="preset-name">Cyber Tech</div>
+        <div class="preset-desc">Тёмно-синий · Неон голубой · AI иллюстрации</div>
+      </div>
+    </div>
+
+    <div class="preset-card" data-preset="neon" onclick="selectPreset(this)">
+      <div class="preset-thumb p-neon">
+        <div class="p-title">НЕОНОВЫЙ<br>ЗАГОЛОВОК</div>
+        <div class="p-body">Тёмный фон, ядовито-зелёный акцент, максимальный контраст...</div>
+        <div class="p-tag">NEON DARK</div>
+      </div>
+      <div class="preset-check">✓</div>
+      <div class="preset-info">
+        <div class="preset-name">Neon Dark</div>
+        <div class="preset-desc">Чёрный · Зелёный неон · Higgsfield стиль</div>
+      </div>
+    </div>
+
+    <div class="preset-card" data-preset="clean" onclick="selectPreset(this)">
+      <div class="preset-thumb p-clean">
+        <div class="p-title" style="color:#111">ЧИСТЫЙ<br>МИНИМАЛИЗМ</div>
+        <div class="p-body" style="color:#666">Светлый фон, строгая типографика, профессиональный вид...</div>
+        <div class="p-tag" style="background:#111;color:#fff">MINIMAL</div>
+      </div>
+      <div class="preset-check">✓</div>
+      <div class="preset-info">
+        <div class="preset-name">Clean White</div>
+        <div class="preset-desc">Белый фон · Чёрная типографика · Бизнес стиль</div>
+      </div>
+    </div>
+
+    <div class="preset-card" data-preset="gold" onclick="selectPreset(this)">
+      <div class="preset-thumb p-gold">
+        <div class="p-title">ЗОЛОТОЙ<br>СТАНДАРТ</div>
+        <div class="p-body">Premium контент для luxury аудитории, финансы, недвижимость...</div>
+        <div class="p-tag">PREMIUM</div>
+      </div>
+      <div class="preset-check">✓</div>
+      <div class="preset-info">
+        <div class="preset-name">Gold Business</div>
+        <div class="preset-desc">Чёрный · Золотой · Премиум и финансы</div>
+      </div>
+    </div>
+
+    <div class="preset-card" data-preset="pop" onclick="selectPreset(this)">
+      <div class="preset-thumb p-pop">
+        <div class="p-title">ЯРКИЙ<br>ГРАДИЕНТ</div>
+        <div class="p-body">Вирусный стиль, молодая аудитория, lifestyle контент...</div>
+        <div class="p-tag">POP</div>
+      </div>
+      <div class="preset-check">✓</div>
+      <div class="preset-info">
+        <div class="preset-name">Gradient Pop</div>
+        <div class="preset-desc">Тёплый градиент · Вирусный · Lifestyle</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PROMPT -->
+  <div class="prompt-wrap">
+    <div class="prompt-header">
+      <span style="font-size:16px">✏️</span>
+      <span class="prompt-header-label">Опиши тему карусели</span>
+    </div>
+    <textarea id="prompt" placeholder="Я психолог. Хочу карусель на тему &quot;Как побороть тревогу за 5 шагов&quot;. Аудитория — женщины 25-40 лет. Тон — поддерживающий, с данными и практикой."></textarea>
+    <div class="prompt-footer">
+      <span class="prompt-footer-label">Формат</span>
+      <div class="format-pills">
+        <div class="format-pill active" data-fmt="45" onclick="selectFmt(this)">4:5</div>
+        <div class="format-pill" data-fmt="11" onclick="selectFmt(this)">1:1</div>
+        <div class="format-pill" data-fmt="916" onclick="selectFmt(this)">9:16</div>
+      </div>
+      <span class="prompt-footer-label" style="margin-left:8px">Слайдов</span>
+      <div class="slides-pills">
+        <div class="slides-pill" data-n="5" onclick="selectSlides(this)">5</div>
+        <div class="slides-pill active" data-n="7" onclick="selectSlides(this)">7</div>
+        <div class="slides-pill" data-n="10" onclick="selectSlides(this)">10</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="generate-btn" id="gen-btn" onclick="generate()">
+    <span id="gen-text">Сгенерировать карусель</span>
+    <span class="arrow" id="gen-arrow">→</span>
+  </button>
+</div>
+
+<!-- ── PREVIEW ── -->
+<div id="preview-section">
+  <div class="preview-header">
+    <div>
+      <div class="preview-title">Предпросмотр карусели</div>
+      <div style="font-size:12px;color:#444;margin-top:4px">Оплатите для скачивания без водяного знака</div>
+    </div>
+    <div class="preview-actions">
+      <button class="btn-secondary" style="padding:10px 20px;font-size:13px;border-radius:4px;border:1px solid #2a2a2a;background:transparent;color:#888;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase" onclick="generate()">↺ Перегенерировать</button>
+      <button class="btn-primary" style="padding:10px 20px;font-size:14px;border-radius:4px;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase" onclick="showPayment()">⬇ Скачать — 390₽</button>
+    </div>
+  </div>
+  <div class="preview-slides" id="preview-slides"></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── PRICING ── -->
+<div id="pricing">
+  <div class="section-label">Тарифы</div>
+  <div class="section-title">ПРОСТЫЕ<br>ЦЕНЫ</div>
+
+  <div class="price-grid">
+    <div class="price-card">
+      <div class="price-name">Разовый</div>
+      <div class="price-amount"><span>₽</span>390</div>
+      <div class="price-period">за одну карусель</div>
+      <ul class="price-features">
+        <li class="yes">1 карусель до 10 слайдов</li>
+        <li class="yes">Скачивание в высоком качестве</li>
+        <li class="yes">Все 6 стилей оформления</li>
+        <li>Приоритетная генерация</li>
+        <li>API доступ</li>
+      </ul>
+      <button class="price-btn" onclick="showPayment()">Купить</button>
+    </div>
+
+    <div class="price-card featured">
+      <div class="price-name">Подписка</div>
+      <div class="price-amount"><span>₽</span>1990</div>
+      <div class="price-period">в месяц · 30 каруселей</div>
+      <ul class="price-features">
+        <li class="yes">30 каруселей в месяц</li>
+        <li class="yes">Скачивание без ограничений</li>
+        <li class="yes">Все стили + новые пресеты</li>
+        <li class="yes">Приоритетная генерация</li>
+        <li>API доступ</li>
+      </ul>
+      <button class="price-btn primary" onclick="showPayment()">Начать</button>
+    </div>
+
+    <div class="price-card">
+      <div class="price-name">Агентство</div>
+      <div class="price-amount"><span>₽</span>7990</div>
+      <div class="price-period">в месяц · безлимит</div>
+      <ul class="price-features">
+        <li class="yes">Безлимитные карусели</li>
+        <li class="yes">Белый лейбл</li>
+        <li class="yes">Свои брендбуки и шрифты</li>
+        <li class="yes">Приоритетная поддержка</li>
+        <li class="yes">API доступ</li>
+      </ul>
+      <button class="price-btn" onclick="showPayment()">Связаться</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-logo">КАРУСЕЛЬ</span>
+  <p class="footer-text">AI генератор Instagram каруселей · 2026</p>
+</footer>
+
+<script>
+var selectedPreset = null;
+var selectedFmt = '45';
+var selectedSlides = 7;
+
+function selectPreset(card) {
+  document.querySelectorAll('.preset-card').forEach(function(c){ c.classList.remove('selected'); });
+  card.classList.add('selected');
+  selectedPreset = card.getAttribute('data-preset');
+}
+
+function selectFmt(pill) {
+  document.querySelectorAll('.format-pill').forEach(function(p){ p.classList.remove('active'); });
+  pill.classList.add('active');
+  selectedFmt = pill.getAttribute('data-fmt');
+}
+
+function selectSlides(pill) {
+  document.querySelectorAll('.slides-pill').forEach(function(p){ p.classList.remove('active'); });
+  pill.classList.add('active');
+  selectedSlides = parseInt(pill.getAttribute('data-n'));
+}
+
+function generate() {
+  var btn = document.getElementById('gen-btn');
+  var txt = document.getElementById('gen-text');
+  var arr = document.getElementById('gen-arrow');
+
+  btn.classList.add('loading');
+  txt.textContent = 'Генерирую карусель...';
+  arr.style.display = 'none';
+
+  setTimeout(function(){
+    btn.classList.remove('loading');
+    txt.textContent = 'Сгенерировать карусель';
+    arr.style.display = '';
+    showPreview();
+  }, 2800);
+}
+
+var presetColors = {
+  news: { bg:'#0a0a0a', accent:'#FF1A1A', text:'#fff' },
+  cyber: { bg:'#071428', accent:'#00BFFF', text:'#fff' },
+  neon: { bg:'#060606', accent:'#39FF14', text:'#39FF14' },
+  clean: { bg:'#f0f0f0', accent:'#111', text:'#111' },
+  gold: { bg:'#0a0800', accent:'#FFD600', text:'#FFD600' },
+  pop: { bg:'#1a0030', accent:'#FF6B6B', text:'#fff' }
+};
+
+var slideLabels = ['Обложка', 'Слайд 2', 'Слайд 3', 'Слайд 4', 'Слайд 5', 'Слайд 6', 'Слайд 7', 'Слайд 8', 'Слайд 9', 'Слайд 10'];
+
+function showPreview() {
+  var preset = selectedPreset || 'neon';
+  var colors = presetColors[preset] || presetColors.neon;
+  var container = document.getElementById('preview-slides');
+  container.innerHTML = '';
+
+  for (var i = 0; i < selectedSlides; i++) {
+    var slide = document.createElement('div');
+    slide.className = 'preview-slide';
+    slide.style.background = colors.bg;
+    slide.innerHTML =
+      '<div class="slide-num">' + (i+1) + '/' + selectedSlides + '</div>' +
+      '<div style="font-family:Anton,sans-serif;font-size:22px;color:' + colors.accent + ';text-align:center;padding:16px;line-height:1;text-transform:uppercase;text-shadow:0 0 20px ' + colors.accent + '44">' +
+        (i === 0 ? 'ОБЛОЖКА' : 'СЛАЙД ' + (i+1)) +
+      '</div>' +
+      '<div style="font-size:11px;color:#555;text-align:center;padding:0 16px;line-height:1.5">' +
+        (i === selectedSlides-1 ? 'CTA слайд' : 'Контент...') +
+      '</div>' +
+      '<div class="wm">PREVIEW</div>';
+    container.appendChild(slide);
+  }
+
+  var sec = document.getElementById('preview-section');
+  sec.classList.add('visible');
+  sec.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function showPayment() {
+  alert('Интеграция оплаты — в разработке.\n\nДля тестирования: напишите нам в Telegram @brand_handle');
+}
+
+// Auto-select first preset
+document.querySelector('.preset-card').classList.add('selected');
+selectedPreset = 'news';
+</script>
+</body>
+</html>
