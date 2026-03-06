@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>КАРУСЕЛЬ — AI генератор постов за 60 секунд</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #39FF14;
+  --red: #FF1A1A;
+  --bg: #050505;
+  --bg2: #0a0a0a;
+  --border: #1a1a1a;
+  --text: #e8e8e8;
+  --muted: #555;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Barlow',sans-serif; overflow-x:hidden; }
+/* scanline removed - was blocking clicks */
+
+/* CONFIG PANEL */
+#cfg { background:#0a0a0a; border:2px solid #1a3a1a; border-radius:8px; padding:18px 20px; margin:0 auto 20px; font-size:12px; }
+
+.cfg-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.cfg-field label { display:block; font-size:10px; color:#555; font-weight:700; text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; }
+.cfg-field input { width:100%; background:#111; border:1px solid #333; color:#ddd; font:13px 'Barlow',sans-serif; padding:9px 12px; border-radius:4px; outline:none; }
+.cfg-field input:focus { border-color:rgba(57,255,20,.5); background:#141414; }
+@media(max-width:640px){ .cfg-grid { grid-template-columns:1fr; } }
+
+nav { position:fixed; top:0; left:0; right:0; z-index:1000; background:rgba(5,5,5,.95); border-bottom:1px solid var(--border); backdrop-filter:blur(20px); padding:0 24px; display:flex; align-items:center; gap:32px; height:56px; }
+.nav-logo { font-family:'Anton',sans-serif; font-size:22px; letter-spacing:.15em; color:var(--green); text-shadow:0 0 30px rgba(57,255,20,.5); text-decoration:none; }
+.nav-cta { background:var(--green); color:#000; font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:9px 20px; border-radius:4px; text-decoration:none; margin-left:auto; box-shadow:0 0 20px rgba(57,255,20,.3); }
+
+.hero { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px 24px 60px; position:relative; overflow:hidden; }
+.hero-grid { position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(rgba(57,255,20,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(57,255,20,.04) 1px,transparent 1px); background-size:60px 60px; mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black 0%,transparent 100%); }
+.hero-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(57,255,20,.08); border:1px solid rgba(57,255,20,.25); border-radius:2px; padding:6px 14px; font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--green); margin-bottom:28px; }
+.hero-badge::before { content:'●'; animation:blink 1.2s infinite; font-size:8px; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+h1 { font-family:'Anton',sans-serif; font-size:clamp(56px,9vw,120px); line-height:.92; letter-spacing:-.01em; text-align:center; text-transform:uppercase; margin-bottom:8px; }
+h1 .accent { color:var(--green); text-shadow:0 0 60px rgba(57,255,20,.4); }
+h1 .red { color:var(--red); }
+.hero-sub { font-size:18px; color:#888; text-align:center; max-width:520px; margin:24px auto 48px; line-height:1.6; }
+.hero-sub strong { color:var(--text); }
+.hero-actions { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+.btn-primary { background:var(--green); color:#000; font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; padding:16px 36px; border-radius:4px; border:none; cursor:pointer; box-shadow:0 0 30px rgba(57,255,20,.35); transition:all .2s; text-decoration:none; display:inline-block; }
+.btn-primary:hover { box-shadow:0 0 60px rgba(57,255,20,.6); transform:translateY(-2px); }
+.btn-secondary { background:transparent; color:var(--text); font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:15px 36px; border-radius:4px; border:1px solid #2a2a2a; cursor:pointer; transition:all .2s; text-decoration:none; display:inline-block; }
+
+.stats { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding:24px; display:flex; justify-content:center; gap:64px; flex-wrap:wrap; }
+.stat { text-align:center; }
+.stat-num { font-family:'Anton',sans-serif; font-size:36px; color:var(--green); text-shadow:0 0 20px rgba(57,255,20,.3); display:block; }
+.stat-label { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; margin-top:2px; }
+
+#generator { max-width:900px; margin:0 auto; padding:80px 24px; }
+.section-label { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--green); margin-bottom:12px; }
+.section-title { font-family:'Anton',sans-serif; font-size:clamp(36px,5vw,64px); line-height:.95; text-transform:uppercase; margin-bottom:16px; }
+.section-sub { font-size:16px; color:#666; max-width:480px; line-height:1.7; margin-bottom:32px; }
+
+.presets-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; margin:0 0 32px; }
+.preset-card { border:2px solid #222; border-radius:8px; overflow:hidden; cursor:pointer; transition:all .25s; background:var(--bg2); }
+.preset-card:hover { border-color:#444; transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,.5); }
+.preset-card.selected { border-color:var(--green); box-shadow:0 0 24px rgba(57,255,20,.2); }
+.preset-card.selected .pcheck { opacity:1; }
+.preset-thumb { height:160px; display:flex; flex-direction:column; padding:16px; position:relative; overflow:hidden; }
+.pcheck { position:absolute; top:8px; right:8px; width:22px; height:22px; background:var(--green); border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .2s; font-size:11px; color:#000; font-weight:700; }
+.p-name { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text); padding:10px 12px 4px; }
+.p-desc { font-size:11px; color:var(--muted); padding:0 12px 10px; }
+
+/* Preset thumbs */
+.p-news { background:#080808; }
+.p-news .pt { font-family:'Anton',sans-serif; font-size:20px; color:#fff; text-transform:uppercase; line-height:.95; }
+.p-news .pt span { background:#FF1A1A; padding:0 3px; }
+.p-news .pb { font-size:10px; color:#777; margin-top:6px; }
+.p-news .pbadge { background:#FF1A1A; color:#fff; font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; letter-spacing:.1em; padding:2px 6px; display:inline-block; margin-bottom:6px; }
+
+.p-cyber { background:linear-gradient(135deg,#040d1a,#071428); }
+.p-cyber .pt { font-family:'Anton',sans-serif; font-size:20px; color:#fff; text-transform:uppercase; line-height:.95; }
+.p-cyber .pt .hl { color:#00BFFF; }
+.p-cyber .pb { font-size:10px; color:#6a8ea4; margin-top:6px; }
+.p-cyber .ptag { background:rgba(0,191,255,.15); border:1px solid rgba(0,191,255,.3); color:#00BFFF; font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; padding:2px 7px; position:absolute; bottom:12px; right:12px; }
+
+.p-neon { background:#040404; }
+.p-neon .pt { font-family:'Anton',sans-serif; font-size:20px; color:#39FF14; text-transform:uppercase; line-height:.95; text-shadow:0 0 16px rgba(57,255,20,.5); }
+.p-neon .pb { font-size:10px; color:#333; margin-top:6px; }
+
+.p-clean { background:#f2f2f2; }
+.p-clean .pt { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; color:#111; text-transform:uppercase; line-height:.95; }
+.p-clean .pb { font-size:10px; color:#666; margin-top:6px; }
+
+.p-gold { background:linear-gradient(135deg,#0a0800,#130f00); }
+.p-gold .pt { font-family:'Anton',sans-serif; font-size:20px; color:#FFD600; text-transform:uppercase; line-height:.95; }
+.p-gold .pb { font-size:10px; color:#5a4e20; margin-top:6px; }
+
+.p-pop { background:linear-gradient(135deg,#1a0030,#0d0020); }
+.p-pop .pt { font-family:'Anton',sans-serif; font-size:20px; background:linear-gradient(90deg,#FF6B6B,#FFD93D); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-transform:uppercase; line-height:.95; }
+.p-pop .pb { font-size:10px; color:#5a3a70; margin-top:6px; }
+
+.p-expert { background:linear-gradient(160deg,#0d0805,#1a1008); }
+.p-expert .pt { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; color:#fff; text-transform:uppercase; line-height:.95; }
+.p-expert .pt .hl { color:#FF4444; }
+.p-expert .pb { font-size:10px; color:#6a5a3a; margin-top:6px; }
+.p-expert .pbadge { background:rgba(255,107,53,.15); border:1px solid rgba(255,107,53,.4); color:#FF6B35; font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; padding:2px 6px; display:inline-block; margin-bottom:6px; }
+
+.p-tv { background:#080808; }
+.p-tv .pt { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; text-transform:uppercase; line-height:.95; background:linear-gradient(90deg,#FF8C00,#FF3300); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.p-tv .pb { font-size:10px; color:#555; margin-top:6px; }
+.p-tv .ticker { position:absolute; bottom:0; left:0; right:0; background:#FF2200; color:#fff; font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; padding:3px 6px; }
+.p-tv .pbadge { display:inline-flex; align-items:center; gap:4px; background:rgba(255,60,0,.15); border:1px solid rgba(255,60,0,.4); color:#FF5500; font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; padding:2px 6px; margin-bottom:6px; }
+.p-tv .pbadge::before { content:'●'; font-size:6px; animation:blink 1s infinite; }
+
+/* PROMPT */
+.prompt-wrap { background:#0d0d0d; border:2px solid #2a2a2a; border-radius:8px; overflow:hidden; margin-bottom:16px; transition:border-color .2s; }
+.prompt-wrap:focus-within { border-color:rgba(57,255,20,.6); box-shadow:0 0 20px rgba(57,255,20,.1); }
+.ph { padding:12px 18px; border-bottom:1px solid var(--border); font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+textarea#prompt { width:100%; min-height:120px; background:transparent; border:none; outline:none; color:#e8e8e8; font-family:'Barlow',sans-serif; font-size:15px; line-height:1.6; padding:18px; resize:vertical; caret-color:#39FF14; }
+textarea#prompt::placeholder { color:#444; }
+.pf { padding:10px 18px; border-top:1px solid var(--border); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.pfl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.pill { background:#111; border:1px solid #222; color:#666; font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:.06em; padding:5px 12px; border-radius:3px; cursor:pointer; transition:all .15s; -webkit-user-select:none; user-select:none; }
+.pill.on { background:rgba(57,255,20,.08); border-color:rgba(57,255,20,.3); color:var(--green); }
+.spill { background:#111; border:1px solid #222; color:#666; font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; width:32px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:3px; cursor:pointer; transition:all .15s; -webkit-user-select:none; user-select:none; }
+.spill.on { background:rgba(57,255,20,.08); border-color:rgba(57,255,20,.3); color:var(--green); }
+
+/* BRAND FIELDS */
+.brand-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
+.brand-field label { display:block; font-size:10px; color:#444; font-weight:700; text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; }
+.brand-field input { width:100%; background:#0d0d0d; border:2px solid #252525; color:#ccc; font:13px 'Barlow',sans-serif; padding:9px 12px; border-radius:4px; outline:none; }
+.brand-field input:focus { border-color:rgba(57,255,20,.4); background:#111; }
+@media(max-width:640px){ .brand-row { grid-template-columns:1fr; } }
+
+/* GENERATE BTN */
+.gen-btn { width:100%; background:var(--green); color:#000; font-family:'Anton',sans-serif; font-size:22px; letter-spacing:.08em; text-transform:uppercase; padding:20px; border:none; border-radius:6px; cursor:pointer; box-shadow:0 0 40px rgba(57,255,20,.25); transition:all .2s; display:flex; align-items:center; justify-content:center; gap:10px; }
+.gen-btn:hover { box-shadow:0 0 80px rgba(57,255,20,.5); transform:translateY(-2px); }
+.gen-btn:disabled { background:#1a2a1a; color:#39FF14; border:1px solid rgba(57,255,20,.2); box-shadow:none; transform:none; cursor:wait; }
+.gen-btn:disabled::after { content:''; display:inline-block; width:14px; height:14px; border:2px solid rgba(57,255,20,.3); border-top-color:#39FF14; border-radius:50%; animation:spin .8s linear infinite; margin-left:8px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* STATUS LOG */
+#log { background:#050f05; border:1px solid #0d2a0d; border-radius:6px; padding:14px 16px; margin:16px 0; display:none; font-family:monospace; font-size:12px; line-height:1.8; max-height:160px; overflow-y:auto; }
+#log.visible { display:block; }
+.log-line { color:#39FF14; }
+.log-line.err { color:#FF4444; }
+.log-line.info { color:#888; }
+
+/* PREVIEW */
+#preview-section { max-width:900px; margin:0 auto; padding:0 24px 80px; display:none; }
+#preview-section.visible { display:block; }
+.prev-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.prev-title { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); transition:color .3s; }
+.prev-title.ready { color:var(--green); text-shadow:0 0 20px rgba(57,255,20,.4); }
+.prev-note { font-size:12px; color:#333; margin-top:3px; }
+.prev-slides { display:flex; gap:10px; overflow-x:auto; padding-bottom:12px; scrollbar-width:thin; scrollbar-color:#222 transparent; }
+.prev-slide { flex-shrink:0; border-radius:6px; overflow:hidden; border:1px solid var(--border); }
+.prev-slide img { display:block; width:200px; height:auto; }
+.prev-slide-empty { flex-shrink:0; width:200px; height:250px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; position:relative; }
+.prev-slide-empty .wm { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Anton',sans-serif; font-size:14px; letter-spacing:.2em; color:rgba(255,255,255,.08); transform:rotate(-30deg); user-select:none; }
+.prev-slide-empty .sn { position:absolute; top:8px; left:8px; background:rgba(57,255,20,.08); border:1px solid rgba(57,255,20,.15); font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; color:var(--green); padding:2px 7px; }
+.prev-slide-empty .sl { font-family:'Anton',sans-serif; font-size:16px; color:#222; text-align:center; }
+
+@keyframes pulse { 0%,100%{box-shadow:0 0 20px rgba(57,255,20,.4)}50%{box-shadow:0 0 40px rgba(57,255,20,.8)} }
+.dl-btn { background:var(--green); color:#000; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:10px 22px; border-radius:4px; border:none; cursor:pointer; animation:pulse 2s infinite; }
+.regen-btn { background:transparent; color:#888; font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:9px 18px; border-radius:4px; border:1px solid #222; cursor:pointer; }
+
+/* PRICING */
+#pricing { max-width:900px; margin:0 auto; padding:80px 24px; }
+.price-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; margin-top:40px; }
+.price-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:32px 28px; position:relative; overflow:hidden; }
+.price-card.featured { border-color:rgba(57,255,20,.3); }
+.price-card.featured::before { content:'ХИТ'; position:absolute; top:16px; right:-22px; background:var(--red); color:#fff; font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:.1em; padding:4px 36px; transform:rotate(35deg); }
+.pn { font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.pa { font-family:'Anton',sans-serif; font-size:52px; color:var(--text); line-height:1; margin-bottom:4px; }
+.pa span { font-size:22px; color:var(--muted); vertical-align:top; padding-top:8px; display:inline-block; }
+.pp { font-size:13px; color:var(--muted); margin-bottom:24px; }
+.pf { list-style:none; margin-bottom:28px; }
+.pf li { font-size:13px; color:#777; padding:7px 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:7px; }
+.pf li.y { color:var(--text); }
+.pf li::before { content:'→'; color:var(--green); font-weight:700; }
+.pb2 { width:100%; padding:13px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; border-radius:4px; border:1px solid #2a2a2a; background:transparent; color:var(--text); cursor:pointer; transition:all .2s; }
+.pb2.pr { background:var(--green); color:#000; border-color:var(--green); box-shadow:0 0 20px rgba(57,255,20,.2); }
+
+footer { background:var(--bg2); border-top:1px solid var(--border); padding:36px 24px; text-align:center; }
+.fl { font-family:'Anton',sans-serif; font-size:26px; color:var(--green); letter-spacing:.15em; display:block; margin-bottom:8px; }
+.ft { font-size:13px; color:var(--muted); }
+
+.lbtn{background:transparent;border:1px solid #222;color:#555;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 8px;border-radius:3px;cursor:pointer;transition:all .15s}
+.lbtn:hover{border-color:#444;color:#888}
+.lbtn.active{background:rgba(57,255,20,.1);border-color:rgba(57,255,20,.4);color:var(--green)}
+@media(max-width:640px){ .lbtn{display:none} nav { padding:0 14px; } #generator,#preview-section,#pricing { padding-left:16px; padding-right:16px; } .hero { padding:90px 16px 50px; } .stats { gap:28px; } }
+
+/* Preset 9 — Anime */
+.p-anime { background:linear-gradient(135deg,#0a0015 0%,#150025 100%); position:relative; overflow:hidden; }
+.p-anime .pt { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; text-transform:uppercase; line-height:.95; background:linear-gradient(90deg,#FF69B4,#9B59B6,#4FC3F7); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.p-anime .pb { font-size:10px; color:#4a3a6a; margin-top:6px; }
+.p-anime .ptag { background:rgba(255,105,180,.15); border:1px solid rgba(255,105,180,.4); color:#FF69B4; font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; padding:2px 7px; position:absolute; bottom:12px; right:12px; }
+.p-anime .pico { position:absolute; bottom:8px; left:10px; font-size:22px; opacity:.5; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">КАРУСЕЛЬ</a>
+  <div id="lang-switcher" style="display:flex;gap:4px;margin-left:auto;margin-right:8px">
+  <button onclick="setLang('en')" class="lbtn" data-l="en">EN</button>
+  <button onclick="setLang('ru')" class="lbtn active" data-l="ru">RU</button>
+  <button onclick="setLang('pl')" class="lbtn" data-l="pl">PL</button>
+  <button onclick="setLang('de')" class="lbtn" data-l="de">DE</button>
+  <button onclick="setLang('es')" class="lbtn" data-l="es">ES</button>
+  <button onclick="setLang('fr')" class="lbtn" data-l="fr">FR</button>
+  <button onclick="setLang('pt')" class="lbtn" data-l="pt">PT</button>
+</div>
+<a class="nav-cta" id="nav-cta" href="#generator">Создать →</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-badge">AI генератор контента</div>
+  <h1><span class="accent">КАРУСЕЛЬ</span><br>ЗА <span class="red">60</span><br>СЕКУНД</h1>
+  <p class="hero-sub">Промпт → AI генерирует контент → <strong>готовые слайды</strong> без дизайнера</p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="#generator">Создать карусель →</a>
+    <a class="btn-secondary" href="carousel_designer.html">Конструктор →</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><span class="stat-num">60с</span><span class="stat-label">генерация</span></div>
+  <div class="stat"><span class="stat-num">9</span><span class="stat-label">стилей</span></div>
+  <div class="stat"><span class="stat-num">130+</span><span class="stat-label">языков</span></div>
+  <div class="stat"><span class="stat-num">∞</span><span class="stat-label">тем</span></div>
+</div>
+
+<div id="generator">
+  <div class="section-label">Генератор</div>
+  <div class="section-title">СОЗДАЙ<br><span style="color:var(--green)">КАРУСЕЛЬ</span></div>
+  <p class="section-sub">Выбери стиль, опиши тему — AI сделает остальное.</p>
+
+  <!-- КОНФИГ СЕРВЕРА — скрытый -->
+  <div id="cfg">
+  <div style="color:var(--green);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:12px;margin-bottom:12px;">⚙ Настройки подключения</div>
+    <div class="cfg-grid">
+      <div class="cfg-field"><label>URL сервера</label><input type="text" id="cfg-url" value="https://designer.ai-carousel.com/generate-carousel" placeholder="http://..."></div>
+      <div class="cfg-field"><label>API Key</label><input type="password" id="cfg-key" value="" placeholder="x-api-key..."></div>
+      <div class="cfg-field"><label>Claude API Key</label><input type="text" id="cfg-claude" value="" placeholder="Хранится на сервере (не нужен)" style="opacity:.5" readonly></div>
+      <div class="cfg-field"><label>Язык карусели</label>
+        <select id="cfg-lang" style="width:100%;background:#111;border:1px solid #333;color:#ddd;font:13px Barlow,sans-serif;padding:9px 12px;border-radius:4px;outline:none">
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+          <option value="pl">Polski</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="pt">Português</option>
+          <option value="uk">Українська</option>
+          <option value="other">Другой (укажи в промпте)</option>
+        </select>
+        <div style="font-size:10px;color:#2a5a2a;margin-top:4px;">Поддерживается 130+ языков — укажи любой в промпте</div>
+      </div>
+    </div>
+  <div style="font-size:11px;color:#3a6a3a;margin-top:8px;">✓ Настройки сохраняются в браузере автоматически</div>
+</div>
+
+  <!-- ПРЕСЕТЫ -->
+  <div class="presets-grid">
+    <div class="preset-card selected" data-preset="news" onclick="selP(this)">
+      <div class="preset-thumb p-news"><div class="pbadge">● LIVE</div><div class="pt">$250K <span>ЗА ВЫЛЕТ</span></div><div class="pb">Ч/б фото · Красный акцент · Anton</div><div class="pcheck">✓</div></div>
+      <div class="p-name">Breaking News</div><div class="p-desc">Новости · События · Шок-контент</div>
+    </div>
+    <div class="preset-card" data-preset="cyber" onclick="selP(this)">
+      <div class="preset-thumb p-cyber"><div class="pt">ЭВОЛЮЦИЯ <span class="hl">СВОБОДЫ</span></div><div class="pb">Тёмно-синий · AI иллюстрации</div><div class="ptag">CYBER</div><div class="pcheck">✓</div></div>
+      <div class="p-name">Cyber Tech</div><div class="p-desc">IT · Технологии · Цифра</div>
+    </div>
+    <div class="preset-card" data-preset="neon" onclick="selP(this)">
+      <div class="preset-thumb p-neon"><div class="pt">НЕОНОВЫЙ<br>ЗАГОЛОВОК</div><div class="pb">Чёрный · Зелёный неон</div><div class="pcheck">✓</div></div>
+      <div class="p-name">Neon Dark</div><div class="p-desc">Бренды · Агентства · Premium</div>
+    </div>
+    <div class="preset-card" data-preset="clean" onclick="selP(this)">
+      <div class="preset-thumb p-clean"><div class="pt">ЧИСТЫЙ<br>МИНИМАЛИЗМ</div><div class="pb" style="color:#999">Белый · Строгая типографика</div><div class="pcheck">✓</div></div>
+      <div class="p-name">Clean White</div><div class="p-desc">Психологи · Коучи · Бизнес</div>
+    </div>
+    <div class="preset-card" data-preset="gold" onclick="selP(this)">
+      <div class="preset-thumb p-gold"><div class="pt">ЗОЛОТОЙ<br>СТАНДАРТ</div><div class="pb">Чёрный · Золотой акцент</div><div class="pcheck">✓</div></div>
+      <div class="p-name">Gold Business</div><div class="p-desc">Недвижимость · Luxury · Финансы</div>
+    </div>
+    <div class="preset-card" data-preset="pop" onclick="selP(this)">
+      <div class="preset-thumb p-pop"><div class="pt">ЯРКИЙ<br>ГРАДИЕНТ</div><div class="pb">Тёплый градиент · Lifestyle</div><div class="pcheck">✓</div></div>
+      <div class="p-name">Gradient Pop</div><div class="p-desc">Lifestyle · Молодёжь · Вирусный</div>
+    </div>
+    <div class="preset-card" data-preset="expert" onclick="selP(this)">
+      <div class="preset-thumb p-expert"><div class="pbadge">🔍 АНАЛИТИКА</div><div class="pt">ДУБАЙ ГОРИТ,<br>А <span class="hl">ПОСТРАДАЕШЬ</span> ТЫ?</div><div class="pb">Эксперт-персонаж · Инфографика</div><div class="pcheck">✓</div></div>
+      <div class="p-name">Explainer</div><div class="p-desc">Финансы · Геополитика · Анализ</div>
+    </div>
+    <div class="preset-card" data-preset="tv" onclick="selP(this)">
+      <div class="preset-thumb p-tv"><div class="pbadge">ПРЯМОЙ ЭФИР</div><div class="pt">МИР ЗА СУТКИ:<br>ДРУГАЯ РЕАЛЬНОСТЬ</div><div class="pb">Фото-ведущий · Бегущая строка</div><div class="ticker">ЭТО НЕ ШУТКИ! ● МИР В ШОКЕ!</div><div class="pcheck">✓</div></div>
+      <div class="p-name">TV Anchor</div><div class="p-desc">Медиа · Репортажи · Новости</div>
+    </div>
+
+    <div class="preset-card" data-preset="anime" onclick="selP(this)">
+      <div class="preset-thumb p-anime">
+        <div class="pt">АНИМЕ<br>СТИЛЬ</div>
+        <div class="pb">Пастельный неон · Японская эстетика</div>
+        <div class="ptag">ANIME</div>
+        <div class="pico">⛩</div>
+        <div class="pcheck">✓</div>
+      </div>
+      <div class="p-name">Anime / Manga</div>
+      <div class="p-desc">Яркий · Молодёжь · Японский стиль</div>
+    </div>
+
+  </div>
+
+  <!-- БРЕНД -->
+  <div class="brand-row">
+    <div class="brand-field"><label>Название бренда</label><input type="text" id="b-name" value="AI Finanse" placeholder="Название бренда"></div>
+    <div class="brand-field"><label>Telegram / Instagram</label><input type="text" id="b-handle" value="@brand_handle" placeholder="@your_handle"></div>
+    <div class="brand-field"><label>Тема / рубрика</label><input type="text" id="b-tag" value="Финансы · 2026" placeholder="Тема · Год"></div>
+  </div>
+
+  <!-- ПРОМПТ -->
+  <div class="prompt-wrap">
+    <div class="ph" style="color:var(--green);font-size:13px;">✏ Опиши тему карусели</div>
+    <textarea id="prompt" placeholder="Я бухгалтер. Хочу карусель на тему «KSeF — что нужно знать предпринимателю в Польше в 2026 году». Аудитория — русскоязычные предприниматели. Тон — экспертный, с данными и конкретикой. 5-7 слайдов."></textarea>
+    <div class="pf">
+      <span class="pfl" style="color:var(--green);">Формат</span>
+      <div style="display:flex;gap:5px">
+        <div class="pill on" data-fmt="45" onclick="selFmt(this)">4:5</div>
+        <div class="pill" data-fmt="11" onclick="selFmt(this)">1:1</div>
+        <div class="pill" data-fmt="916" onclick="selFmt(this)">9:16</div>
+        <div class="pill" data-fmt="169" onclick="selFmt(this)">16:9</div>
+      </div>
+      <span class="pfl" style="margin-left:8px;color:var(--green);">Слайдов</span>
+      <div style="display:flex;gap:4px">
+        <div class="spill" data-n="5" onclick="selN(this)">5</div>
+        <div class="spill" data-n="6" onclick="selN(this)">6</div>
+        <div class="spill on" data-n="7" onclick="selN(this)">7</div>
+        <div class="spill" data-n="8" onclick="selN(this)">8</div>
+        <div class="spill" data-n="9" onclick="selN(this)">9</div>
+        <div class="spill" data-n="10" onclick="selN(this)">10</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="log"></div>
+
+  <button class="gen-btn" id="gen-btn" onclick="generate()">
+    <span id="gen-txt">Сгенерировать карусель</span>
+    <span id="gen-arr">→</span>
+  </button>
+</div>
+
+<!-- PREVIEW -->
+<div id="preview-section">
+  <div class="prev-header">
+    <div><div class="prev-title">Готовая карусель</div><div class="prev-note" id="prev-note"></div></div>
+    <div style="display:flex;gap:8px">
+      <button class="regen-btn" onclick="generate()">↺ Перегенерировать</button>
+      <button class="dl-btn" onclick="download()">⬇ Скачать</button>
+    </div>
+  </div>
+  <div class="prev-slides" id="prev-slides"></div>
+</div>
+
+<div style="height:1px;background:linear-gradient(90deg,transparent,#1a1a1a,transparent);max-width:900px;margin:0 auto"></div>
+
+<!-- PRICING -->
+<div id="pricing">
+  <div class="section-label">Тарифы</div>
+  <div class="section-title">ПРОСТЫЕ ЦЕНЫ</div>
+  <div class="price-grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">
+
+    <div class="price-card">
+      <div class="pn" style="color:#888">Бесплатно</div>
+      <div class="pa" style="color:#e8e8e8"><span style="color:var(--green)">€</span>0</div>
+      <div class="pp">навсегда</div>
+      <ul class="pf">
+        <li class="y"><span style="color:#888;font-weight:700">3 карусели</span> в месяц</li>
+        <li class="y">3 базовых стиля</li>
+        <li class="y">Водяной знак</li>
+        <li style="color:#333">Низкое разрешение</li>
+        <li style="color:#333">Нет конструктора</li>
+        <li style="color:#333">Нет кастомных шрифтов</li>
+      </ul>
+      <button class="pb2">Начать бесплатно</button>
+    </div>
+
+    <div class="price-card">
+      <div class="pn" style="color:var(--green)">Разовый</div>
+      <div class="pa" style="color:#e8e8e8"><span style="color:var(--green)">€</span>5</div>
+      <div class="pp">за одну карусель</div>
+      <ul class="pf">
+        <li class="y"><span style="color:var(--green);font-weight:700">1 карусель</span> до 10 слайдов</li>
+        <li class="y">Все 9 стилей</li>
+        <li class="y">Высокое разрешение</li>
+        <li class="y">Без водяного знака</li>
+        <li class="y">Конструктор включён</li>
+        <li style="color:#333">Нет истории</li>
+      </ul>
+      <button class="pb2">Купить</button>
+    </div>
+
+    <div class="price-card featured">
+      <div class="pn" style="color:var(--green)">Подписка</div>
+      <div class="pa" style="color:#e8e8e8"><span style="color:var(--green)">€</span>60</div>
+      <div class="pp">в месяц · 30 каруселей</div>
+      <ul class="pf">
+        <li class="y"><span style="color:var(--green);font-weight:700">30 каруселей</span> в месяц</li>
+        <li class="y">Все 9 стилей</li>
+        <li class="y">Высокое разрешение</li>
+        <li class="y">Без водяного знака</li>
+        <li class="y">Конструктор включён</li>
+        <li class="y">История каруселей</li>
+      </ul>
+      <button class="pb2 pr">Начать</button>
+    </div>
+
+    <div class="price-card">
+      <div class="pn" style="color:#FFD600">Безлимит</div>
+      <div class="pa" style="color:#e8e8e8"><span style="color:var(--green)">€</span>300</div>
+      <div class="pp">в месяц · без ограничений</div>
+      <ul class="pf">
+        <li class="y"><span style="color:#FFD600;font-weight:700">Безлимитные</span> карусели</li>
+        <li class="y">Все 9 стилей + новые</li>
+        <li class="y">Высокое разрешение</li>
+        <li class="y">Без водяного знака</li>
+        <li class="y">Конструктор + кастом шрифты</li>
+        <li class="y">Приоритетная поддержка</li>
+      </ul>
+      <button class="pb2">Связаться</button>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <span class="fl">КАРУСЕЛЬ</span>
+  <p class="ft">AI генератор Instagram каруселей · 2026</p>
+</footer>
+
+<script>
+// ── STATE ──
+var curPreset = 'news';
+var curFmt = '45';
+var curN = 7;
+var generatedUrls = [];
+
+// ── PRESET DESIGNS ──
+var DESIGNS = {
+  news:   { color_accent:'#FF1A1A', font_display:'Anton', font_body:'Barlow', bg_brightness:0.7, content_bg_brightness:0.2, cover_overlay:0.5, content_overlay:0.6 },
+  cyber:  { color_accent:'#00BFFF', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.3, content_bg_brightness:0.15, cover_overlay:0.7, content_overlay:0.75 },
+  neon:   { color_accent:'#39FF14', font_display:'Anton', font_body:'Inter', bg_brightness:0.82, content_bg_brightness:0.28, cover_overlay:0.35, content_overlay:0.45 },
+  clean:  { color_accent:'#111111', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:1.0, content_bg_brightness:0.95, cover_overlay:0.0, content_overlay:0.0, color_text:'#111111', color_subtext:'#444444', color_bg:'#f5f5f5' },
+  gold:   { color_accent:'#FFD600', font_display:'Anton', font_body:'Barlow', bg_brightness:0.5, content_bg_brightness:0.2, cover_overlay:0.6, content_overlay:0.65 },
+  pop:    { color_accent:'#FF6B6B', font_display:'Anton', font_body:'Barlow', bg_brightness:0.4, content_bg_brightness:0.2, cover_overlay:0.5, content_overlay:0.55 },
+  expert: { color_accent:'#FF4444', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.6, content_bg_brightness:0.25, cover_overlay:0.45, content_overlay:0.55 },
+  anime:  { color_accent:'#FF69B4', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.4, content_bg_brightness:0.15, cover_overlay:0.6, content_overlay:0.65 },
+  anime:  { color_accent:'#FF69B4', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.4, content_bg_brightness:0.15, cover_overlay:0.6, content_overlay:0.65 },
+  anime:  { color_accent:'#FF69B4', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.4, content_bg_brightness:0.15, cover_overlay:0.6, content_overlay:0.65 },
+  anime:  { color_accent:'#FF69B4', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.4, content_bg_brightness:0.15, cover_overlay:0.6, content_overlay:0.65 },
+  tv:     { color_accent:'#FF6600', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.65, content_bg_brightness:0.2, cover_overlay:0.5, content_overlay:0.6 }
+};
+
+function selP(card) {
+  document.querySelectorAll('.preset-card').forEach(function(c){ c.classList.remove('selected'); });
+  card.classList.add('selected');
+  curPreset = card.getAttribute('data-preset');
+}
+function selFmt(p) {
+  document.querySelectorAll('.pill').forEach(function(x){ x.classList.remove('on'); });
+  p.classList.add('on'); curFmt = p.getAttribute('data-fmt');
+}
+function selN(p) {
+  document.querySelectorAll('.spill').forEach(function(x){ x.classList.remove('on'); });
+  p.classList.add('on'); curN = parseInt(p.getAttribute('data-n'));
+}
+
+function g(id){ return document.getElementById(id); }
+function gv(id){ return g(id) ? g(id).value.trim() : ''; }
+
+function log(msg, type) {
+  var el = g('log');
+  el.classList.add('visible');
+  var line = document.createElement('div');
+  line.className = 'log-line' + (type ? ' '+type : '');
+  line.textContent = '› ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog(){ var el=g('log'); el.innerHTML=''; el.classList.remove('visible'); }
+
+function setBtn(loading) {
+  var btn = g('gen-btn');
+  var txt = g('gen-txt');
+  var arr = g('gen-arr');
+  btn.disabled = loading;
+  txt.textContent = loading ? 'Генерирую...' : 'Сгенерировать карусель';
+  if(arr) arr.style.display = loading ? 'none' : '';
+}
+
+// ── DIMS FROM FORMAT ──
+function getDims(fmt) {
+  if(fmt==='11')  return [1080,1080];
+  if(fmt==='916') return [1080,1920];
+  if(fmt==='169') return [1920,1080];
+  return [1080,1350]; // 4:5 default
+}
+
+// ── STEP 1: Claude generates content ──
+async function callClaude(userPrompt) {
+  var lang = gv('cfg-lang') || 'ru';
+  var brandName = gv('b-name') || 'Brand';
+  var brandHandle = gv('b-handle') || '@brand';
+  var tagLine = gv('b-tag') || '2026';
+  var preset = curPreset;
+  var nSlides = curN;
+
+  var langInstructions = {
+    en: 'in English', ru: 'на русском языке', pl: 'w języku polskim',
+    de: 'auf Deutsch', es: 'en Español', fr: 'en Français',
+    pt: 'em Português', uk: 'українською мовою', other: '(язык указан в промпте)'
+  };
+
+  var systemPrompt = `Ты эксперт по созданию вирусных Instagram каруселей в стиле "${preset}".
+Создай контент для карусели бренда "${brandName}" (${brandHandle}).
+Язык контента: ${langInstructions[lang] || 'на русском языке'}.
+Количество слайдов контента: ${nSlides - 2} (не считая обложку и CTA).
+
+Верни ТОЛЬКО валидный JSON без markdown блоков и пояснений:
+{
+  "title1": "ПЕРВАЯ СТРОКА ЗАГОЛОВКА ОБЛОЖКИ (1-3 слова, CAPS)",
+  "title2": "ВТОРАЯ СТРОКА ЗАГОЛОВКА (1-3 слова, CAPS)",
+  "subtitle": "Краткий саблайн обложки (1-2 предложения, до 120 символов)",
+  "slides": [
+    {
+      "heading": "ЗАГОЛОВОК СЛАЙДА (CAPS, до 60 символов)",
+      "body": "Текст слайда (2-4 предложения, конкретика и факты)",
+      "question": "Провокационный вопрос в конце (или null)"
+    }
+  ],
+  "cta": {
+    "heading1": "ПЕРВАЯ СТРОКА CTA",
+    "heading2": "ВТОРАЯ СТРОКА CTA",
+    "body": "Призыв к действию (1-2 предложения)",
+    "note": "Дополнительное примечание"
+  }
+}`;
+
+  // Use server-side proxy to avoid CORS (Anthropic blocks direct browser calls)
+  var serverBase = gv('cfg-url').replace('/generate-carousel', '');
+  var proxyUrl = serverBase + '/claude-proxy';
+  var serverApiKey = gv('cfg-key');
+
+  var resp = await fetch(proxyUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': serverApiKey
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if(!resp.ok) {
+    var err = await resp.text();
+    throw new Error('Claude прокси: ' + resp.status + ' ' + err.slice(0,300));
+  }
+  var data = await resp.json();
+  var text = data.content[0].text.trim();
+  // Strip markdown if present
+  text = text.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
+  return JSON.parse(text);
+}
+
+// ── STEP 2: POST to carousel server ──
+async function callCarouselServer(content) {
+  var serverUrl = gv('cfg-url') || 'http://carousel-api:8080/generate-carousel';
+  var apiKey = gv('cfg-key');
+  var dims = getDims(curFmt);
+  var design = Object.assign({
+    color_text: '#FFFFFF',
+    color_subtext: '#E8E8E8',
+    color_muted: '#A0A0A0',
+    color_bg: '#080808',
+    title_vertical_offset: 0,
+    title_line1_font_size: 96,
+    title_line2_font_size: 96,
+    frame_mode: 'none',
+    frame_color: '#FF6B00',
+    frame_width: 6,
+    paragraph_spacing: 32,
+    width: dims[0],
+    height: dims[1]
+  }, DESIGNS[curPreset] || DESIGNS.neon);
+
+  // Server expects single CarouselRequest object (not array)
+  var payload = {
+    project: 'carousel_web',
+    brand_name: gv('b-name') || 'Brand',
+    brand_handle: gv('b-handle') || '@brand',
+    bg_image_url: null,
+    bg_image_base64: null,
+    logo_base64: null,
+    logo_url: null,
+    person_image_url: null,
+    person_image_base64: null,
+    title1: content.title1,
+    title2: content.title2,
+    subtitle: content.subtitle,
+    tag_line: gv('b-tag') || '2026',
+    slides: content.slides.map(function(s){ return { heading: s.heading, body: s.body, keywords: [], question: s.question || null }; }),
+    cta: content.cta,
+    theme: {},
+    design: design
+  };
+
+  var headers = { 'Content-Type': 'application/json' };
+  if(apiKey) headers['x-api-key'] = apiKey;
+
+  var resp = await fetch(serverUrl, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(payload)
+  });
+
+  if(!resp.ok) {
+    var err = await resp.text();
+    throw new Error('Сервер карусели: ' + resp.status + ' ' + err.slice(0,300));
+  }
+  return await resp.json();
+}
+
+// ── MAIN GENERATE ──
+async function generate() {
+  var userPrompt = gv('prompt');
+  if(!userPrompt) { alert('Напиши тему карусели'); return; }
+
+  clearLog();
+  setBtn(true);
+  generatedUrls = [];
+  g('preview-section').classList.remove('visible');
+
+  try {
+    log('Анализирую промпт...');
+    log('Генерирую контент через Claude AI...');
+
+    var content = await callClaude(userPrompt);
+    log('Контент готов: ' + content.slides.length + ' слайдов ✓');
+    log('Отправляю на сервер рендеринга...');
+
+    var result = await callCarouselServer(content);
+    log('Рендеринг завершён ✓', '');
+
+    // Server returns CarouselResponse: { carousel_id, slide_urls, total_slides, storage }
+    var urls = [];
+    if(result.slide_urls && result.slide_urls.length > 0) {
+      urls = result.slide_urls;
+    } else if(result.urls) {
+      urls = result.urls;
+    } else if(Array.isArray(result)) {
+      result.forEach(function(r){
+        if(r.url) urls.push(r.url);
+        else if(typeof r === 'string') urls.push(r);
+      });
+    }
+    if(result.storage) log('Хранилище: ' + result.storage, 'info');
+
+    if(urls.length === 0) {
+      log('Сервер ответил но URL не найдены. Ответ: ' + JSON.stringify(result).slice(0,200), 'err');
+    } else {
+      generatedUrls = urls;
+      log('Готово! ' + urls.length + ' слайдов ✓');
+      showPreview(urls, content);
+    }
+
+  } catch(e) {
+    log('Ошибка: ' + e.message, 'err');
+    console.error(e);
+
+    // If Claude worked but server failed — show placeholder preview
+    if(e.message.includes('Сервер')) {
+      log('Показываю превью-заглушку (сервер недоступен)', 'info');
+      showEmptyPreview(curN + 2);
+    }
+  }
+
+  setBtn(false);
+}
+
+function showPreview(urls, content) {
+  var container = g('prev-slides');
+  container.innerHTML = '';
+  urls.forEach(function(url, i){
+    var div = document.createElement('div');
+    div.className = 'prev-slide';
+    var img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Слайд ' + (i+1);
+    div.appendChild(img);
+    container.appendChild(div);
+  });
+  g('prev-note').textContent = content ? content.title1 + ' ' + content.title2 : '';
+  g('prev-title').classList.add('ready');
+  g('prev-title').textContent = '✓ Карусель готова';
+  g('preview-section').classList.add('visible');
+  g('preview-section').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function showEmptyPreview(count) {
+  var container = g('prev-slides');
+  container.innerHTML = '';
+  for(var i=0; i<count; i++){
+    var div = document.createElement('div');
+    div.className = 'prev-slide-empty';
+    div.innerHTML = '<div class="sn">'+(i+1)+'/'+count+'</div><div class="sl">'+(i===0?'ОБЛОЖКА':i===count-1?'CTA':'СЛАЙД '+(i+1))+'</div><div class="wm">PREVIEW</div>';
+    container.appendChild(div);
+  }
+  g('prev-note').textContent = 'Превью · сервер рендеринга недоступен';
+  g('preview-section').classList.add('visible');
+  g('preview-section').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+async function download() {
+  if(generatedUrls.length === 0) { alert('Карусель ещё не сгенерирована'); return; }
+  
+  var btn = document.querySelector('.dl-btn');
+  btn.textContent = '⏳ Скачиваю...';
+  btn.disabled = true;
+
+  try {
+    var zip = new JSZip();
+    for(var i=0; i<generatedUrls.length; i++){
+      var url = generatedUrls[i];
+      var resp = await fetch(url);
+      var blob = await resp.blob();
+      zip.file('slide_' + String(i+1).padStart(2,'0') + '.png', blob);
+    }
+    var content = await zip.generateAsync({type:'blob'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'carousel_slides.zip';
+    a.click();
+  } catch(e) {
+    alert('Ошибка скачивания: ' + e.message);
+  }
+
+  btn.textContent = '⬇ Скачать';
+  btn.disabled = false;
+}
+
+
+// ── i18n ──
+var LANGS = {
+  ru: {
+    logo:'КАРУСЕЛЬ',
+    gentitle_full:'СОЗДАЙ<br><span style="color:var(--green)">КАРУСЕЛЬ</span>',
+    pricetitle_full:'ПРОСТЫЕ ЦЕНЫ',
+    cfgtitle_txt:'⚙ Настройки подключения',
+    cfgsave_txt:'✓ Настройки сохраняются в браузере автоматически',
+    badge:'AI генератор контента', h1a:'КАРУСЕЛЬ', h1b:'ЗА', h1c:'СЕКУНД',
+    sub:'Промпт → AI генерирует контент → <strong>готовые слайды</strong> без дизайнера',
+    btn1:'Создать карусель →', btn2:'Конструктор →', navcta:'Создать →',
+    s1:'генерация', s2:'стилей', s3:'языков', s4:'тем',
+    genlabel:'Генератор', gentitle1:'СОЗДАЙ', gentitle2:'КАРУСЕЛЬ',
+    gensub:'Выбери стиль, опиши тему — AI сделает остальное.',
+    cfgtitle:'⚙ Настройки подключения', cfgsave:'✓ Настройки сохраняются в браузере автоматически',
+    lurl:'URL сервера', lkey:'API Key', lclaudekey:'Claude API Key', llang:'Язык карусели',
+    lbrand:'Название бренда', lhandle:'Telegram / Instagram', ltag:'Тема / рубрика',
+    phdr:'✏ Опиши тему карусели', pfmt:'Формат', pslides:'Слайдов',
+    genbtn:'Сгенерировать карусель', pricelabel:'Тарифы', pricetitle:'ПРОСТЫЕ ЦЕНЫ',
+    ftxt:'AI генератор Instagram каруселей · 2026',
+    prevtitle:'✓ Карусель готова', regen:'↺ Перегенерировать', dl:'⬇ Скачать'
+  },
+  en: {
+    logo:'CAROUSEL',
+    gentitle_full:'CREATE<br><span style="color:var(--green)">CAROUSEL</span>',
+    pricetitle_full:'SIMPLE PRICES',
+    cfgtitle_txt:'⚙ Connection settings',
+    cfgsave_txt:'✓ Settings saved automatically in browser',
+    badge:'AI Content Generator', h1a:'CAROUSEL', h1b:'IN', h1c:'SECONDS',
+    sub:'Prompt → AI generates content → <strong>ready slides</strong> without a designer',
+    btn1:'Create carousel →', btn2:'Constructor →', navcta:'Create →',
+    s1:'generation', s2:'styles', s3:'languages', s4:'topics',
+    genlabel:'Generator', gentitle1:'CREATE', gentitle2:'CAROUSEL',
+    gensub:'Choose a style, describe the topic — AI does the rest.',
+    cfgtitle:'⚙ Connection settings', cfgsave:'✓ Settings are saved in the browser automatically',
+    lurl:'Server URL', lkey:'API Key', lclaudekey:'Claude API Key', llang:'Carousel language',
+    lbrand:'Brand name', lhandle:'Telegram / Instagram', ltag:'Topic / category',
+    phdr:'✏ Describe carousel topic', pfmt:'Format', pslides:'Slides',
+    genbtn:'Generate carousel', pricelabel:'Pricing', pricetitle:'SIMPLE PRICES',
+    ftxt:'AI Instagram carousel generator · 2026',
+    prevtitle:'✓ Carousel ready', regen:'↺ Regenerate', dl:'⬇ Download'
+  },
+  pl: {
+    logo:'KARUZELA',
+    gentitle_full:'STWÓRZ<br><span style="color:var(--green)">KARUZELĘ</span>',
+    pricetitle_full:'PROSTE CENY',
+    cfgtitle_txt:'⚙ Ustawienia połączenia',
+    cfgsave_txt:'✓ Ustawienia zapisywane automatycznie',
+    badge:'Generator treści AI', h1a:'KARUZELA', h1b:'W', h1c:'SEKUND',
+    sub:'Prompt → AI generuje treść → <strong>gotowe slajdy</strong> bez projektanta',
+    btn1:'Stwórz karuzelę →', btn2:'Konstruktor →', navcta:'Stwórz →',
+    s1:'generacja', s2:'stylów', s3:'języków', s4:'tematów',
+    genlabel:'Generator', gentitle1:'STWÓRZ', gentitle2:'KARUZELĘ',
+    gensub:'Wybierz styl, opisz temat — AI zrobi resztę.',
+    cfgtitle:'⚙ Ustawienia połączenia', cfgsave:'✓ Ustawienia są zapisywane automatycznie',
+    lurl:'URL serwera', lkey:'Klucz API', lclaudekey:'Klucz Claude API', llang:'Język karuzeli',
+    lbrand:'Nazwa marki', lhandle:'Telegram / Instagram', ltag:'Temat / kategoria',
+    phdr:'✏ Opisz temat karuzeli', pfmt:'Format', pslides:'Slajdy',
+    genbtn:'Generuj karuzelę', pricelabel:'Cennik', pricetitle:'PROSTE CENY',
+    ftxt:'Generator karuzel Instagram AI · 2026',
+    prevtitle:'✓ Karuzela gotowa', regen:'↺ Wygeneruj ponownie', dl:'⬇ Pobierz'
+  },
+  de: {
+    logo:'KARUSSELL',
+    gentitle_full:'ERSTELLE<br><span style="color:var(--green)">KARUSSELL</span>',
+    pricetitle_full:'EINFACHE PREISE',
+    cfgtitle_txt:'⚙ Verbindungseinstellungen',
+    cfgsave_txt:'✓ Einstellungen automatisch gespeichert',
+    badge:'KI-Inhaltsgenerator', h1a:'KARUSSELL', h1b:'IN', h1c:'SEKUNDEN',
+    sub:'Prompt → KI generiert Inhalt → <strong>fertige Slides</strong> ohne Designer',
+    btn1:'Karussell erstellen →', btn2:'Konstruktor →', navcta:'Erstellen →',
+    s1:'Generierung', s2:'Stile', s3:'Sprachen', s4:'Themen',
+    genlabel:'Generator', gentitle1:'ERSTELLE', gentitle2:'KARUSSELL',
+    gensub:'Stil wählen, Thema beschreiben — KI erledigt den Rest.',
+    cfgtitle:'⚙ Verbindungseinstellungen', cfgsave:'✓ Einstellungen werden automatisch gespeichert',
+    lurl:'Server-URL', lkey:'API-Schlüssel', lclaudekey:'Claude API-Schlüssel', llang:'Karussell-Sprache',
+    lbrand:'Markenname', lhandle:'Telegram / Instagram', ltag:'Thema / Kategorie',
+    phdr:'✏ Beschreibe das Karussell-Thema', pfmt:'Format', pslides:'Folien',
+    genbtn:'Karussell generieren', pricelabel:'Preise', pricetitle:'EINFACHE PREISE',
+    ftxt:'KI Instagram-Karussell-Generator · 2026',
+    prevtitle:'✓ Karussell fertig', regen:'↺ Neu generieren', dl:'⬇ Herunterladen'
+  },
+  es: {
+    logo:'CARRUSEL',
+    gentitle_full:'CREA<br><span style="color:var(--green)">CARRUSEL</span>',
+    pricetitle_full:'PRECIOS SIMPLES',
+    cfgtitle_txt:'⚙ Configuración de conexión',
+    cfgsave_txt:'✓ Configuración guardada automáticamente',
+    badge:'Generador de contenido IA', h1a:'CARRUSEL', h1b:'EN', h1c:'SEGUNDOS',
+    sub:'Prompt → IA genera contenido → <strong>diapositivas listas</strong> sin diseñador',
+    btn1:'Crear carrusel →', btn2:'Constructor →', navcta:'Crear →',
+    s1:'generación', s2:'estilos', s3:'idiomas', s4:'temas',
+    genlabel:'Generador', gentitle1:'CREA', gentitle2:'CARRUSEL',
+    gensub:'Elige un estilo, describe el tema — la IA hace el resto.',
+    cfgtitle:'⚙ Configuración de conexión', cfgsave:'✓ Configuración guardada automáticamente',
+    lurl:'URL del servidor', lkey:'Clave API', lclaudekey:'Clave Claude API', llang:'Idioma del carrusel',
+    lbrand:'Nombre de marca', lhandle:'Telegram / Instagram', ltag:'Tema / categoría',
+    phdr:'✏ Describe el tema del carrusel', pfmt:'Formato', pslides:'Diapositivas',
+    genbtn:'Generar carrusel', pricelabel:'Precios', pricetitle:'PRECIOS SIMPLES',
+    ftxt:'Generador de carruseles Instagram IA · 2026',
+    prevtitle:'✓ Carrusel listo', regen:'↺ Regenerar', dl:'⬇ Descargar'
+  },
+  fr: {
+    logo:'CARROUSEL',
+    gentitle_full:'CRÉEZ<br><span style="color:var(--green)">CARROUSEL</span>',
+    pricetitle_full:'PRIX SIMPLES',
+    cfgtitle_txt:'⚙ Paramètres de connexion',
+    cfgsave_txt:'✓ Paramètres sauvegardés automatiquement',
+    badge:'Générateur de contenu IA', h1a:'CARROUSEL', h1b:'EN', h1c:'SECONDES',
+    sub:'Prompt → IA génère le contenu → <strong>diapositives prêtes</strong> sans designer',
+    btn1:'Créer un carrousel →', btn2:'Constructeur →', navcta:'Créer →',
+    s1:'génération', s2:'styles', s3:'langues', s4:'sujets',
+    genlabel:'Générateur', gentitle1:'CRÉEZ', gentitle2:'CARROUSEL',
+    gensub:'Choisissez un style, décrivez le sujet — l\'IA fait le reste.',
+    cfgtitle:'⚙ Paramètres de connexion', cfgsave:'✓ Paramètres sauvegardés automatiquement',
+    lurl:'URL du serveur', lkey:'Clé API', lclaudekey:'Clé Claude API', llang:'Langue du carrousel',
+    lbrand:'Nom de marque', lhandle:'Telegram / Instagram', ltag:'Sujet / catégorie',
+    phdr:'✏ Décrivez le sujet du carrousel', pfmt:'Format', pslides:'Diapositives',
+    genbtn:'Générer un carrousel', pricelabel:'Tarifs', pricetitle:'PRIX SIMPLES',
+    ftxt:'Générateur de carrousels Instagram IA · 2026',
+    prevtitle:'✓ Carrousel prêt', regen:'↺ Régénérer', dl:'⬇ Télécharger'
+  },
+  pt: {
+    logo:'CARROSSEL',
+    gentitle_full:'CRIE<br><span style="color:var(--green)">CARROSSEL</span>',
+    pricetitle_full:'PREÇOS SIMPLES',
+    cfgtitle_txt:'⚙ Configurações de conexão',
+    cfgsave_txt:'✓ Configurações salvas automaticamente',
+    badge:'Gerador de conteúdo IA', h1a:'CARROSSEL', h1b:'EM', h1c:'SEGUNDOS',
+    sub:'Prompt → IA gera conteúdo → <strong>slides prontos</strong> sem designer',
+    btn1:'Criar carrossel →', btn2:'Construtor →', navcta:'Criar →',
+    s1:'geração', s2:'estilos', s3:'idiomas', s4:'temas',
+    genlabel:'Gerador', gentitle1:'CRIE', gentitle2:'CARROSSEL',
+    gensub:'Escolha um estilo, descreva o tema — a IA faz o resto.',
+    cfgtitle:'⚙ Configurações de conexão', cfgsave:'✓ Configurações salvas automaticamente',
+    lurl:'URL do servidor', lkey:'Chave API', lclaudekey:'Chave Claude API', llang:'Idioma do carrossel',
+    lbrand:'Nome da marca', lhandle:'Telegram / Instagram', ltag:'Tema / categoria',
+    phdr:'✏ Descreva o tema do carrossel', pfmt:'Formato', pslides:'Slides',
+    genbtn:'Gerar carrossel', pricelabel:'Preços', pricetitle:'PREÇOS SIMPLES',
+    ftxt:'Gerador de carrosséis Instagram IA · 2026',
+    prevtitle:'✓ Carrossel pronto', regen:'↺ Regenerar', dl:'⬇ Baixar'
+  }
+};
+
+var PRICING = {
+  ru: ['Бесплатно', '#888', 'навсегда', '3 карусели', '3 базовых стиля', 'Водяной знак', 'Низкое разрешение', 'Нет конструктора', 'Нет кастомных шрифтов', 'Начать бесплатно', 'Разовый', 'var(--green)', 'за одну карусель', '1 карусель до 10 слайдов', 'Все 9 стилей', 'Высокое разрешение', 'Без водяного знака', 'Конструктор включён', 'Нет истории', 'Купить', 'Подписка', 'var(--green)', 'в месяц · 30 каруселей', '30 каруселей', 'Все 9 стилей', 'Высокое разрешение', 'Без водяного знака', 'Конструктор включён', 'История каруселей', 'Начать', 'Безлимит', '#FFD600', 'в месяц · без ограничений', 'Безлимитные', 'Все 9 стилей + новые', 'Высокое разрешение', 'Без водяного знака', 'Конструктор + шрифты', 'Приоритетная поддержка', 'Связаться', 'AI генератор Instagram каруселей · 2026', 'КАРУСЕЛЬ'],
+  en: ['Free', '#888', 'forever', '3 carousels/month', '3 basic styles', 'Watermark', 'Low resolution', 'No constructor', 'No custom fonts', 'Start for free', 'One-time', 'var(--green)', 'per carousel', '1 carousel up to 10 slides', 'All 9 styles', 'High resolution', 'No watermark', 'Constructor included', 'No history', 'Buy', 'Subscription', 'var(--green)', 'per month · 30 carousels', '30 carousels/month', 'All 9 styles', 'High resolution', 'No watermark', 'Constructor included', 'Carousel history', 'Start', 'Unlimited', '#FFD600', 'per month · no limits', 'Unlimited carousels', 'All 9 styles + new', 'High resolution', 'No watermark', 'Constructor + fonts', 'Priority support', 'Contact', 'AI Instagram carousel generator · 2026', 'CAROUSEL'],
+  pl: ['Bezplatny', '#888', 'na zawsze', '3 karuzele/mies.', '3 podstawowe style', 'Znak wodny', 'Niska rozdzielczosc', 'Brak konstruktora', 'Brak czcionek', 'Zacznij bezplatnie', 'Jednorazowy', 'var(--green)', 'za jedna karuzel', '1 karuzela do 10 slajdow', 'Wszystkie 9 stylow', 'Wysoka rozdzielczosc', 'Bez znaku wodnego', 'Konstruktor w zestawie', 'Brak historii', 'Kup', 'Subskrypcja', 'var(--green)', 'miesiecznie · 30 karuzeli', '30 karuzeli/mies.', 'Wszystkie 9 stylow', 'Wysoka rozdzielczosc', 'Bez znaku wodnego', 'Konstruktor w zestawie', 'Historia karuzeli', 'Zacznij', 'Bez limitu', '#FFD600', 'miesiecznie · bez ograniczen', 'Nieograniczone karuzele', 'Wszystkie 9 stylow + nowe', 'Wysoka rozdzielczosc', 'Bez znaku wodnego', 'Konstruktor + czcionki', 'Priorytetowe wsparcie', 'Kontakt', 'Generator karuzeli Instagram AI · 2026', 'KARUZELA'],
+  de: ['Kostenlos', '#888', 'fuer immer', '3 Karussells/Monat', '3 Basisstile', 'Wasserzeichen', 'Niedrige Aufloesung', 'Kein Konstruktor', 'Keine Schriften', 'Kostenlos starten', 'Einmalig', 'var(--green)', 'pro Karussell', '1 Karussell bis 10 Folien', 'Alle 9 Stile', 'Hohe Aufloesung', 'Kein Wasserzeichen', 'Konstruktor inklusive', 'Kein Verlauf', 'Kaufen', 'Abonnement', 'var(--green)', 'pro Monat · 30 Karussells', '30 Karussells/Monat', 'Alle 9 Stile', 'Hohe Aufloesung', 'Kein Wasserzeichen', 'Konstruktor inklusive', 'Karussell-Verlauf', 'Starten', 'Unbegrenzt', '#FFD600', 'pro Monat · ohne Limits', 'Unbegrenzte Karussells', 'Alle 9 Stile + neue', 'Hohe Aufloesung', 'Kein Wasserzeichen', 'Konstruktor + Schriften', 'Prioritaetssupport', 'Kontakt', 'KI Instagram-Karussell-Generator · 2026', 'KARUSSELL'],
+  es: ['Gratis', '#888', 'para siempre', '3 carruseles/mes', '3 estilos basicos', 'Marca de agua', 'Baja resolucion', 'Sin constructor', 'Sin fuentes', 'Empezar gratis', 'Unico', 'var(--green)', 'por carrusel', '1 carrusel hasta 10 diaps.', 'Los 9 estilos', 'Alta resolucion', 'Sin marca de agua', 'Constructor incluido', 'Sin historial', 'Comprar', 'Suscripcion', 'var(--green)', 'al mes · 30 carruseles', '30 carruseles/mes', 'Los 9 estilos', 'Alta resolucion', 'Sin marca de agua', 'Constructor incluido', 'Historial', 'Empezar', 'Ilimitado', '#FFD600', 'al mes · sin limites', 'Carruseles ilimitados', 'Los 9 estilos + nuevos', 'Alta resolucion', 'Sin marca de agua', 'Constructor + fuentes', 'Soporte prioritario', 'Contactar', 'Generador de carruseles Instagram IA · 2026', 'CARRUSEL'],
+  fr: ['Gratuit', '#888', 'pour toujours', '3 carrousels/mois', '3 styles de base', 'Filigrane', 'Faible resolution', 'Sans constructeur', 'Sans polices', 'Commencer gratuitement', 'Unique', 'var(--green)', 'par carrousel', '1 carrousel jusqu a 10 slides', 'Les 9 styles', 'Haute resolution', 'Sans filigrane', 'Constructeur inclus', 'Sans historique', 'Acheter', 'Abonnement', 'var(--green)', 'par mois · 30 carrousels', '30 carrousels/mois', 'Les 9 styles', 'Haute resolution', 'Sans filigrane', 'Constructeur inclus', 'Historique', 'Commencer', 'Illimite', '#FFD600', 'par mois · sans limites', 'Carrousels illimites', 'Les 9 styles + nouveaux', 'Haute resolution', 'Sans filigrane', 'Constructeur + polices', 'Support prioritaire', 'Contacter', 'Generateur de carrousels Instagram IA · 2026', 'CARROUSEL'],
+  pt: ['Gratis', '#888', 'para sempre', '3 carrosseis/mes', '3 estilos basicos', 'Marca dagua', 'Baixa resolucao', 'Sem construtor', 'Sem fontes', 'Comecar gratis', 'Unico', 'var(--green)', 'por carrossel', '1 carrossel ate 10 slides', 'Todos 9 estilos', 'Alta resolucao', 'Sem marca dagua', 'Construtor incluido', 'Sem historico', 'Comprar', 'Assinatura', 'var(--green)', 'por mes · 30 carrosseis', '30 carrosseis/mes', 'Todos 9 estilos', 'Alta resolucao', 'Sem marca dagua', 'Construtor incluido', 'Historico', 'Comecar', 'Ilimitado', '#FFD600', 'por mes · sem limites', 'Carrosseis ilimitados', 'Todos 9 estilos + novos', 'Alta resolucao', 'Sem marca dagua', 'Construtor + fontes', 'Suporte prioritario', 'Contatar', 'Gerador de carrosseis Instagram IA · 2026', 'CARROSSEL'],
+};
+
+
+function updatePricing(l) {
+  var p = PRICING[l];
+  if(!p) return;
+  var t = LANGS[l];
+  
+  // Footer
+  var fl = document.getElementById('footer-logo');
+  if(fl) fl.textContent = p[41] || t.logo || 'CAROUSEL';
+  var ft = document.querySelector('.ft');
+  if(ft) ft.textContent = p[40];
+
+  var pc = document.querySelectorAll('.price-card');
+  if(pc.length < 4) return;
+  
+  var cards = [
+    {el:pc[0], name:p[0], color:p[1], pp:p[2], f:[p[3],p[4],p[5],p[6],p[7],p[8]], btn:p[9]},
+    {el:pc[1], name:p[10], color:p[11], pp:p[12], f:[p[13],p[14],p[15],p[16],p[17],p[18]], btn:p[19]},
+    {el:pc[2], name:p[20], color:p[21], pp:p[22], f:[p[23],p[24],p[25],p[26],p[27],p[28]], btn:p[29]},
+    {el:pc[3], name:p[30], color:p[31], pp:p[32], f:[p[33],p[34],p[35],p[36],p[37],p[38]], btn:p[39]}
+  ];
+  
+  cards.forEach(function(c) {
+    var pn = c.el.querySelector('.pn');
+    if(pn) pn.innerHTML = '<span style="color:' + c.color + '">' + c.name + '</span>';
+    var pp = c.el.querySelector('.pp');
+    if(pp) pp.textContent = c.pp;
+    var lis = c.el.querySelectorAll('.pf li');
+    lis.forEach(function(li, i) {
+      if(c.f[i]) {
+        // preserve inner spans (colored numbers)
+        var span = li.querySelector('span');
+        if(span) li.innerHTML = '<span style="' + span.style.cssText + '">' + c.f[i].split(' ')[0] + '</span> ' + c.f[i].split(' ').slice(1).join(' ');
+        else li.textContent = c.f[i];
+      }
+    });
+    var btn = c.el.querySelector('.pb2');
+    if(btn) btn.textContent = c.btn;
+  });
+}
+
+var curLang = 'ru';
+
+function setLang(l) {
+  if(!LANGS[l]) return;
+  curLang = l;
+  var t = LANGS[l];
+  
+  // Nav
+  var nc = document.getElementById('nav-cta');
+  if(nc) nc.textContent = t.navcta;
+  
+  // Active button
+  document.querySelectorAll('.lbtn').forEach(function(b){ 
+    b.classList.toggle('active', b.getAttribute('data-l') === l);
+  });
+  
+  // Hero
+  var badge = document.querySelector('.hero-badge');
+  if(badge) badge.innerHTML = '● ' + t.badge;
+  
+  var h1 = document.querySelector('h1');
+  if(h1) h1.innerHTML = '<span class="accent">' + t.h1a + '</span><br>' + t.h1b + ' <span class="red">' + t.h1c.replace('60','60') + '</span><br>' + t.h1c.replace('СЕКУНД','60').replace('SECONDS','60').replace('SEKUND','60').replace('SEKUNDEN','60').replace('SECONDES','60').replace('SEGUNDOS','60');
+  
+  var sub = document.querySelector('.hero-sub');
+  if(sub) sub.innerHTML = t.sub;
+  
+  var btn1 = document.querySelector('.btn-primary');
+  if(btn1) btn1.textContent = t.btn1;
+  
+  var btn2 = document.querySelector('.btn-secondary');
+  if(btn2) btn2.textContent = t.btn2;
+  
+  // Stats
+  var statLabels = document.querySelectorAll('.stat-label');
+  if(statLabels[0]) statLabels[0].textContent = t.s1;
+  if(statLabels[1]) statLabels[1].textContent = t.s2;
+  if(statLabels[2]) statLabels[2].textContent = t.s3;
+  if(statLabels[3]) statLabels[3].textContent = t.s4;
+  
+  // Section labels
+  var sl = document.querySelector('.section-label');
+  if(sl) sl.textContent = t.genlabel;
+  
+  var ph = document.querySelector('.ph');
+  if(ph) ph.textContent = t.phdr;
+  
+  var pfmts = document.querySelectorAll('.pfl');
+  if(pfmts[0]) pfmts[0].textContent = t.pfmt;
+  if(pfmts[1]) pfmts[1].textContent = t.pslides;
+  
+  var gb = document.getElementById('gen-txt');
+  if(gb) gb.textContent = t.genbtn;
+  
+  // Pricing label
+  var pricel = document.querySelector('#pricing .section-label');
+  if(pricel) pricel.textContent = t.pricelabel;
+  
+  // Footer
+  var ft = document.querySelector('.ft');
+  if(ft) ft.textContent = t.ftxt;
+  
+  // Logo
+  var logo = document.querySelector('.nav-logo');
+  if(logo) logo.textContent = t.logo || 'КАРУСЕЛЬ';
+
+  // Section title СОЗДАЙ КАРУСЕЛЬ
+  var st = document.querySelector('.section-title');
+  if(st) st.innerHTML = t.gentitle_full || t.gentitle1 + '<br><span style="color:var(--green)">' + t.gentitle2 + '</span>';
+
+  // Section subtitle
+  var ss = document.querySelector('.section-sub');
+  if(ss) ss.textContent = t.gensub;
+
+  // Config panel title
+  var cfgt = document.querySelector('#cfg > div:first-child');
+  if(cfgt) cfgt.textContent = t.cfgtitle_txt || t.cfgtitle;
+
+  // Config save note
+  var cfgs = document.querySelector('#cfg > div:last-child');
+  if(cfgs && cfgs.style && cfgs.style.color === 'rgb(58, 106, 58)') cfgs.textContent = t.cfgsave_txt || t.cfgsave;
+
+  // Price section title
+  var pt = document.querySelector('#pricing .section-title');
+  if(pt) pt.textContent = t.pricetitle_full || t.pricetitle;
+
+  // Save lang
+  try { localStorage.setItem('carousel_lang', l); } catch(e){}
+  
+  // Also set carousel language selector to match UI language
+  var cl = document.getElementById('cfg-lang');
+  if(cl && l !== 'other') cl.value = l;
+  updatePricing(l);
+}
+
+// Load saved lang
+try {
+  var savedLang = localStorage.getItem('carousel_lang');
+  if(savedLang && LANGS[savedLang]) { setTimeout(function(){ setLang(savedLang); }, 100); }
+} catch(e){}
+
+// ── LOCALSTORAGE for credentials ──
+function saveSettings() {
+  var s = {
+    url: gv('cfg-url'),
+    key: gv('cfg-key'),
+    lang: gv('cfg-lang')
+  };
+  try { localStorage.setItem('carousel_cfg', JSON.stringify(s)); } catch(e){}
+}
+
+function loadSettings() {
+  try {
+    var s = JSON.parse(localStorage.getItem('carousel_cfg') || '{}');
+    if(s.url)    g('cfg-url').value    = s.url;
+    if(s.key)    g('cfg-key').value    = s.key;
+    if(s.lang)   g('cfg-lang').value   = s.lang;
+  } catch(e){}
+}
+
+// Auto-save on change
+['cfg-url','cfg-key','cfg-lang'].forEach(function(id){
+  var el = g(id);
+  if(el) el.addEventListener('change', saveSettings);
+});
+
+loadSettings();
+document.querySelector('.preset-card').classList.add('selected');
+</script>
+</body>
+</html>
