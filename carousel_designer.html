@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Carousel Designer v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --acc:#39FF14;--bg:#080808;--sb:#0d0d0d;--border:#1e1e1e;
+  --text:#ccc;--muted:#666;--input:#111;
+}
+body{font:13px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ── TOP BAR ── */
+#bar{
+  background:#090909;border-bottom:2px solid var(--acc);
+  padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-size:13px;font-weight:800;color:var(--acc);letter-spacing:.12em;text-shadow:0 0 20px rgba(57,255,20,.4)}
+.lang-btns{display:flex;gap:3px;margin-left:6px}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;padding:0 14px;
+  background:#151515;border:1.5px solid #333;color:#bbb;
+  border-radius:6px;font:700 12px system-ui,sans-serif;
+  cursor:pointer;-webkit-appearance:none;appearance:none;
+  transition:all .15s;white-space:nowrap;
+  -webkit-tap-highlight-color:rgba(57,255,20,.3);
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;
+}
+.btn.on{background:var(--acc);border-color:var(--acc);color:#000}
+.btn:active{opacity:.6}
+.dlbtn{
+  background:transparent;border:1px solid #222;color:#555;
+  font:700 11px system-ui;letter-spacing:.06em;
+  padding:3px 8px;border-radius:3px;cursor:pointer;transition:all .15s;
+}
+.dlbtn.active{background:rgba(57,255,20,.1);border-color:rgba(57,255,20,.4);color:var(--acc)}
+
+/* ── ZOOM BAR ── */
+#zrow{
+  background:#0a0a0a;border-bottom:1px solid #181818;
+  padding:7px 14px;display:flex;align-items:center;gap:10px;
+}
+#zrow label{font-size:11px;color:#666}
+#zslider{flex:1;max-width:180px;height:4px;-webkit-appearance:none;appearance:none;background:#2a2a2a;border-radius:2px;outline:none;cursor:pointer;touch-action:pan-y}
+#zslider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;background:var(--acc);border-radius:50%}
+#zlabel{font-size:13px;color:var(--acc);font-weight:800;min-width:36px}
+
+/* ── LAYOUT ── */
+#wrap{display:flex;min-height:calc(100vh - 80px);align-items:flex-start}
+#sb{
+  width:270px;min-width:270px;background:var(--sb);
+  border-right:1px solid var(--border);
+  overflow-y:auto;position:sticky;top:80px;
+  height:calc(100vh - 80px);align-self:flex-start;
+}
+#main{flex:1;padding:14px 16px}
+
+/* ── SLIDES STRIP ── */
+#slides{
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:flex-start;
+  margin-bottom:16px;position:sticky;top:80px;z-index:50;
+  background:var(--bg);padding:10px 0 12px;
+  border-bottom:1px solid #141414;
+}
+.sc{display:flex;flex-direction:column;align-items:center;gap:5px}
+.sl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;padding:2px 6px}
+.sl:hover{color:var(--acc)}
+canvas{display:block;border-radius:4px;cursor:pointer;border:1.5px solid transparent;transition:border-color .2s}
+canvas:hover{border-color:rgba(57,255,20,.3)}
+
+/* ── SIDEBAR SECTIONS ── */
+.sec{border-bottom:1px solid #181818}
+.sh{
+  padding:12px 14px;font-size:11px;font-weight:800;color:#ddd;
+  text-transform:uppercase;letter-spacing:.12em;
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;-webkit-user-select:none;touch-action:manipulation;
+  background:#161616;border-left:3px solid transparent;
+  transition:background .15s;
+}
+.sh:hover{background:#1e1e1e;color:#fff}
+#sec-global .sh{border-left-color:#888;color:#ccc}
+#sec-cover .sh{border-left-color:#39FF14;color:#a8f78c}
+#sec-content .sh{border-left-color:#00BFFF;color:#7dd9f9}
+#sec-cta .sh{border-left-color:#FF6B35;color:#ffaa88}
+.sec.cl .sh{background:#0f0f0f}
+.sh-icon{font-size:14px;margin-right:6px}
+.sh-label{flex:1;display:flex;align-items:center;gap:6px}
+.sh-tag{
+  font-size:9px;font-weight:700;letter-spacing:.08em;
+  padding:2px 6px;border-radius:3px;text-transform:uppercase;
+}
+.sh-tag.cover{background:rgba(57,255,20,.12);color:var(--acc);border:1px solid rgba(57,255,20,.25)}
+.sh-tag.content{background:rgba(0,191,255,.1);color:#00BFFF;border:1px solid rgba(0,191,255,.2)}
+.sh-tag.cta{background:rgba(255,107,53,.1);color:#FF6B35;border:1px solid rgba(255,107,53,.2)}
+.sh-tag.global{background:rgba(255,255,255,.06);color:#888;border:1px solid rgba(255,255,255,.1)}
+.ar{color:var(--acc);display:inline-block;transition:transform .2s;font-size:10px}
+.sec.cl .ar{transform:rotate(-90deg)}
+.sbd{padding:0 12px 12px;display:flex;flex-direction:column;gap:5px}
+.hi{display:none!important}
+
+/* ── SUBSECTIONS inside slide block ── */
+.sub-hd{
+  font-size:10px;font-weight:700;color:#555;text-transform:uppercase;
+  letter-spacing:.08em;margin-top:10px;margin-bottom:4px;
+  padding-bottom:4px;border-bottom:1px solid #1a1a1a;
+  display:flex;align-items:center;gap:5px;
+}
+.sub-hd::before{content:'';width:3px;height:10px;border-radius:2px;background:currentColor;opacity:.6}
+
+/* ── INPUTS ── */
+.lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:4px}
+.rw{display:flex;align-items:center;gap:6px}
+.rw .n{font-size:11px;color:#888;flex:1}
+.rv{font-size:11px;color:var(--acc);font-weight:700;min-width:36px;text-align:right}
+input[type=range]{
+  flex:1;height:4px;-webkit-appearance:none;appearance:none;
+  background:#2a2a2a;border-radius:2px;outline:none;cursor:pointer;touch-action:pan-y;
+}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;background:var(--acc);border-radius:50%}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;background:var(--acc);border-radius:50%;border:none}
+input[type=text],textarea,select{
+  background:var(--input);border:1px solid #1e1e1e;color:#ccc;
+  font:13px/1.35 system-ui,sans-serif;padding:8px 10px;
+  border-radius:5px;width:100%;outline:none;-webkit-appearance:none;
+  transition:border-color .15s;
+}
+input[type=text]:focus,textarea:focus,select:focus{border-color:rgba(57,255,20,.3)}
+textarea{resize:none;height:52px}
+input[type=color]{width:34px;height:28px;border:none;background:none;padding:0;cursor:pointer;border-radius:4px}
+input[type=file]{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+
+/* ── UPLOAD BUTTONS ── */
+.ul-btn{
+  display:flex;align-items:center;gap:8px;padding:9px 11px;
+  background:#0f0f0f;border:1.5px dashed #252525;border-radius:6px;
+  cursor:pointer;font-size:12px;color:#666;
+  transition:all .2s;-webkit-user-select:none;touch-action:manipulation;
+}
+.ul-btn:hover{border-color:#444;color:#888}
+.ul-btn.got{border-color:rgba(57,255,20,.4);color:var(--acc);border-style:solid;background:rgba(57,255,20,.04)}
+.ul-btn .ul-icon{font-size:16px}
+.ul-btn .ul-clr{
+  margin-left:auto;font-size:10px;color:#444;cursor:pointer;
+  display:none;padding:2px 6px;border:1px solid #333;border-radius:3px;
+}
+.ul-btn.got .ul-clr{display:block}
+.ul-btn.got .ul-clr:hover{color:#ff4444;border-color:#ff4444}
+
+/* ── COLOR ROW ── */
+.color-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+.color-row span{font-size:11px;color:#888;flex:1}
+.color-swatch{
+  width:28px;height:28px;border-radius:4px;cursor:pointer;
+  border:2px solid #333;transition:border-color .15s;position:relative;overflow:hidden;
+}
+.color-swatch:hover{border-color:#555}
+.color-swatch input[type=color]{
+  position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
+}
+
+/* ── MODAL ── */
+#mod{display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:998;align-items:center;justify-content:center;padding:16px}
+#mod.op{display:flex}
+.mbox{background:#0d0d0d;border:1px solid #2a2a2a;border-radius:12px;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column}
+.mh{padding:14px 16px;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;justify-content:space-between}
+.mh h2{font-size:14px;font-weight:700;color:var(--acc)}
+.mb{flex:1;overflow:auto;padding:14px 16px}
+pre#jout{background:#000;border:1px solid #1e1e1e;border-radius:6px;padding:12px;font:11px/1.5 'Courier New',monospace;color:#7dd3fc;white-space:pre;overflow-x:auto;max-height:320px}
+.mf{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #1e1e1e}
+.mf .btn{flex:1;min-height:40px}
+
+/* ── DEBUG ── */
+#dbg{background:#050505;color:#39FF14;padding:4px 12px;font-size:10px;font-family:monospace;min-height:18px;opacity:.5}
+
+/* ── MOBILE ── */
+@media(max-width:640px){
+  #sb,#zrow{display:none}
+  #bar{top:0}
+}
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <a href="index.html" style="background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.25);color:var(--acc);font:700 11px system-ui;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:4px;text-decoration:none;display:inline-flex;align-items:center;gap:5px;"><span data-i18n="btn_back">← Назад</span></a>
+  <span class="logo" data-i18n="logo_text">CAROUSEL</span>
+  <div class="lang-btns">
+    <button onclick="setLangD('ru')" class="dlbtn active" data-l="ru">RU</button>
+    <button onclick="setLangD('en')" class="dlbtn" data-l="en">EN</button>
+    <button onclick="setLangD('pl')" class="dlbtn" data-l="pl">PL</button>
+    <button onclick="setLangD('de')" class="dlbtn" data-l="de">DE</button>
+    <button onclick="setLangD('es')" class="dlbtn" data-l="es">ES</button>
+    <button onclick="setLangD('fr')" class="dlbtn" data-l="fr">FR</button>
+    <button onclick="setLangD('pt')" class="dlbtn" data-l="pt">PT</button>
+  </div>
+  <div style="display:flex;gap:4px;margin-left:4px">
+    <button class="btn on" id="tb-all">Все</button>
+    <button class="btn" id="tb-cover">Обложка</button>
+    <button class="btn" id="tb-content">Контент</button>
+    <button class="btn" id="tb-cta">CTA</button>
+  </div>
+  <span style="flex:1"></span>
+  <button class="btn" id="ws-btn">☀</button>
+  <button class="btn on" id="json-btn">{ } JSON</button>
+</div>
+
+<div id="zrow">
+  <label for="zslider" data-i18n="lbl_zoom">Zoom:</label>
+  <input type="range" id="zslider" min="10" max="65" value="22">
+  <span id="zlabel">22%</span>
+</div>
+
+<div id="wrap">
+
+<!-- ══════════════════════════════════════════ SIDEBAR ══════════════════════════════════════════ -->
+<div id="sb">
+
+  <!-- ░░ ГЛОБАЛЬНО ░░ -->
+  <div class="sec cl" id="sec-global">
+    <div class="sh" onclick="toggleSec('global')">
+      <span class="sh-label"><span class="sh-icon">🎨</span><span data-i18n="sec_global">Стиль и цвета</span><span class="sh-tag global" data-i18n="tag_global">GLOBAL</span></span>
+      <span class="ar" id="ar-global">▾</span>
+    </div>
+    <div class="sbd hi" id="bd-global">
+      <div class="sub-hd" style="color:#aaa" data-i18n="sh_colors">Цвета</div>
+      <div class="color-row"><span data-i18n="col_accent">Акцент</span><div class="color-swatch"><input type="color" id="c_a" value="#39FF14"></div></div>
+      <div class="color-row"><span data-i18n="col_titles">Заголовки</span><div class="color-swatch"><input type="color" id="c_t" value="#FFFFFF"></div></div>
+      <div class="color-row"><span data-i18n="col_text">Текст</span><div class="color-swatch"><input type="color" id="c_s" value="#E8E8E8"></div></div>
+      <div class="color-row"><span data-i18n="col_bg">Фон (без фото)</span><div class="color-swatch"><input type="color" id="c_bg" value="#050505"></div></div>
+
+      <div class="sub-hd" style="color:#aaa" data-i18n="sh_fonts">Шрифты</div>
+      <div class="lbl" data-i18n="lbl_fd">Заголовочный</div>
+      <select id="f_d">
+        <option value="Anton" selected>Anton</option>
+        <option value="Barlow">Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+      <div class="lbl" data-i18n="lbl_fb">Текстовый</div>
+      <select id="f_b">
+        <option value="Anton">Anton</option>
+        <option value="Barlow" selected>Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+
+      <div class="sub-hd" style="color:#aaa" data-i18n="sh_slidesize">Размер слайда</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn on" id="ar45" style="flex:1;min-width:44px;font-size:11px;min-height:34px">4:5</button>
+        <button class="btn" id="ar11" style="flex:1;min-width:44px;font-size:11px;min-height:34px">1:1</button>
+        <button class="btn" id="ar916" style="flex:1;min-width:44px;font-size:11px;min-height:34px">9:16</button>
+        <button class="btn" id="ar169" style="flex:1;min-width:44px;font-size:11px;min-height:34px">16:9</button>
+      </div>
+      <div class="rw"><span class="n" data-i18n="rl_width">Ширина</span><span class="rv" id="rv_sw">1080</span></div>
+      <input type="range" id="s_sw" min="600" max="1920" step="10" value="1080">
+      <div class="rw"><span class="n" data-i18n="rl_height">Высота</span><span class="rv" id="rv_sh">1350</span></div>
+      <input type="range" id="s_sh" min="600" max="1920" step="10" value="1350">
+    </div>
+  </div>
+
+
+  <!-- ░░ ОБЛОЖКА ░░ -->
+  <div class="sec cl" id="sec-cover">
+    <div class="sh" onclick="toggleSec('cover')">
+      <span class="sh-label"><span class="sh-icon">🖼</span><span data-i18n="sec_cover">Обложка</span><span class="sh-tag cover" data-i18n="tag_cover">COVER</span></span>
+      <span class="ar" id="ar-cover">▾</span>
+    </div>
+    <div class="sbd hi" id="bd-cover">
+      <div class="sub-hd" style="color:#39FF14" data-i18n="sh_texts">Тексты</div>
+      <div class="lbl" data-i18n="lbl_tag">Тег</div><input type="text" id="t_tag" value="КАТЕГОРИЯ">
+      <div class="lbl" data-i18n="lbl_title1">Заголовок 1</div><input type="text" id="t_t1" value="ГЛАВНЫЙ">
+      <div class="lbl" data-i18n="lbl_title2">Заголовок 2</div><input type="text" id="t_t2" value="ЗАГОЛОВОК">
+      <div class="lbl" data-i18n="lbl_sub">Субтайтл</div><textarea id="t_sub">Краткое описание для вашей аудитории</textarea>
+
+      <div class="sub-hd" style="color:#39FF14" data-i18n="sh_sizes">Размеры</div>
+      <div class="rw"><span class="n" data-i18n="rl_tagpx">Тег px</span><span class="rv" id="rv_st">22</span></div>
+      <input type="range" id="s_st" min="12" max="42" value="22">
+      <div class="rw"><span class="n" data-i18n="rl_t1">Загол. 1</span><span class="rv" id="rv_s1">96</span></div>
+      <input type="range" id="s_s1" min="36" max="180" step="2" value="96">
+      <div class="rw"><span class="n" data-i18n="rl_t2">Загол. 2</span><span class="rv" id="rv_s2">96</span></div>
+      <input type="range" id="s_s2" min="36" max="180" step="2" value="96">
+      <div class="rw"><span class="n" data-i18n="rl_sub">Субтайтл</span><span class="rv" id="rv_ss">28</span></div>
+      <input type="range" id="s_ss" min="12" max="60" value="28">
+      <div class="rw"><span class="n" data-i18n="rl_vy">Сдвиг Y</span><span class="rv" id="rv_vy">0</span></div>
+      <input type="range" id="s_vy" min="-300" max="300" step="4" value="0">
+      <div class="rw"><span class="n" data-i18n="rl_cvps">Расстояние между блоками</span><span class="rv" id="rv_cvps">24</span></div>
+      <input type="range" id="s_cvps" min="0" max="120" step="2" value="24">
+
+      <div class="sub-hd" style="color:#39FF14" data-i18n="sh_covphoto">Фото обложки</div>
+      <label class="ul-btn" id="cov-bg-lbl" for="cov-bg-f">
+        <span class="ul-icon">🖼</span>
+        <span id="cov-bg-t" data-i18n="ul_covphoto">Загрузить фото обложки</span>
+        <span class="ul-clr" id="cov-bg-clr" onclick="clearImg('cover');return false">✕</span>
+      </label>
+      <input type="file" id="cov-bg-f" accept="image/*">
+
+      <div class="rw" style="margin-top:6px"><span class="n" data-i18n="rl_bright">Яркость (1.0=норм, 2.0=ярче)</span><span class="rv" id="rv_cbb">1.00</span></div>
+      <input type="range" id="s_cbb" min="0.1" max="2.0" step="0.01" value="1.00">
+      <div class="rw"><span class="n" data-i18n="rl_dark">Затемнение</span><span class="rv" id="rv_co">0.00</span></div>
+      <input type="range" id="s_co" min="0" max="0.95" step="0.01" value="0.00">
+
+
+      <div class="sub-hd" style="color:#39FF14" data-i18n="sh_fontscol">Шрифты и цвета</div>
+      <div class="lbl" data-i18n="lbl_fd">Заголовочный</div>
+      <select id="cov_f_d">
+        <option value="Anton" selected>Anton</option>
+        <option value="Barlow">Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+      <div class="lbl" data-i18n="lbl_fb">Текстовый</div>
+      <select id="cov_f_b">
+        <option value="Anton">Anton</option>
+        <option value="Barlow" selected>Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+      <div class="color-row"><span data-i18n="col_accent_tag">Акцент (тег, загол. 2)</span><div class="color-swatch" id="sw_cov_ca"><input type="color" id="cov_c_a" value="#39FF14"></div></div>
+      <div class="color-row"><span data-i18n="col_title1">Заголовок 1</span><div class="color-swatch" id="sw_cov_ct"><input type="color" id="cov_c_t" value="#FFFFFF"></div></div>
+      <div class="color-row"><span data-i18n="col_subtitle">Субтайтл</span><div class="color-swatch" id="sw_cov_cs"><input type="color" id="cov_c_s" value="#E8E8E8"></div></div>
+
+      <div class="sub-hd" style="color:#39FF14" data-i18n="sh_logo">Логотип</div>
+      <label class="ul-btn" id="lo-lbl" for="lo-f">
+        <span class="ul-icon">🏷</span>
+        <span id="lo-t" data-i18n="ul_logo">Загрузить логотип</span>
+        <span class="ul-clr" id="lo-clr" onclick="clearImg('logo');return false">✕</span>
+      </label>
+      <input type="file" id="lo-f" accept="image/*">
+      <div class="sub-hd" style="color:#555;font-size:9px;margin-top:4px">Позиция логотипа</div>
+      <div style="display:flex;gap:4px;margin-bottom:6px">
+        <button class="btn" id="lp-left" style="flex:1;min-height:30px;font-size:11px" onclick="setLP('left')"><span data-i18n="lp_left">◀ Лево</span></button>
+        <button class="btn" id="lp-center" style="flex:1;min-height:30px;font-size:11px" onclick="setLP('center')"><span data-i18n="lp_center">● Центр</span></button>
+        <button class="btn on" id="lp-right" style="flex:1;min-height:30px;font-size:11px" onclick="setLP('right')"><span data-i18n="lp_right">Право ▶</span></button>
+      </div>
+      <input type="hidden" id="t_lp" value="right">
+      <div class="rw"><span class="n" data-i18n="rl_logopx">Размер лого px</span><span class="rv" id="rv_ls">150</span></div>
+      <input type="range" id="s_ls" min="40" max="320" step="4" value="150">
+    </div>
+  </div>
+
+  <!-- ░░ КОНТЕНТ ░░ -->
+  <div class="sec cl" id="sec-content">
+    <div class="sh" onclick="toggleSec('content')">
+      <span class="sh-label"><span class="sh-icon">📝</span><span data-i18n="sec_content">Контент</span><span class="sh-tag content" data-i18n="tag_content">SLIDES</span></span>
+      <span class="ar" id="ar-content">▾</span>
+    </div>
+    <div class="sbd hi" id="bd-content">
+      <div class="sub-hd" style="color:#00BFFF" data-i18n="sh_texts">Тексты</div>
+      <div class="lbl" data-i18n="lbl_slideno">Номер слайда</div><input type="text" id="t_no" value="01">
+      <div class="lbl" data-i18n="lbl_heading">Заголовок</div><input type="text" id="t_ch" value="Заголовок слайда">
+      <div class="lbl" data-i18n="lbl_bodytext">Текст</div><textarea id="t_cb">Здесь основной текст слайда. Чёткий, конкретный, с фактами.</textarea>
+      <div class="lbl" data-i18n="lbl_question">Вопрос / Крючок</div><textarea id="t_q">Что вы думаете об этом?</textarea>
+
+      <div class="sub-hd" style="color:#00BFFF" data-i18n="sh_sizes">Размеры</div>
+      <div class="rw"><span class="n" data-i18n="rl_cvy">Сдвиг Y (↑ минус / ↓ плюс)</span><span class="rv" id="rv_cvy">0</span></div>
+      <input type="range" id="s_cvy" min="-100" max="700" step="4" value="0">
+      <div class="rw"><span class="n" data-i18n="rl_heading">Заголовок</span><span class="rv" id="rv_ch">72</span></div>
+      <input type="range" id="s_ch" min="28" max="140" step="2" value="72">
+      <div class="rw"><span class="n" data-i18n="rl_text">Текст</span><span class="rv" id="rv_cb">32</span></div>
+      <input type="range" id="s_cb" min="14" max="64" value="32">
+      <div class="rw"><span class="n" data-i18n="rl_question">Вопрос</span><span class="rv" id="rv_cq">26</span></div>
+      <input type="range" id="s_cq" min="12" max="52" value="26">
+      <div class="rw"><span class="n" data-i18n="rl_spacing">Отступ</span><span class="rv" id="rv_ps">30</span></div>
+      <input type="range" id="s_ps" min="8" max="100" step="2" value="30">
+      <div class="rw"><span class="n" data-i18n="rl_footerlogo">Лого футер</span><span class="rv" id="rv_fl">100</span></div>
+      <input type="range" id="s_fl" min="60" max="240" step="4" value="100">
+
+      <div class="sub-hd" style="color:#00BFFF" data-i18n="sh_fontscol">Шрифты и цвета</div>
+      <div class="lbl" data-i18n="lbl_fd">Заголовочный</div>
+      <select id="cnt_f_d">
+        <option value="Anton" selected>Anton</option>
+        <option value="Barlow">Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+      <div class="lbl" data-i18n="lbl_fb">Текстовый</div>
+      <select id="cnt_f_b">
+        <option value="Anton">Anton</option>
+        <option value="Barlow" selected>Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+      <div class="color-row"><span data-i18n="col_accent_no">Акцент (номер, полоса)</span><div class="color-swatch"><input type="color" id="cnt_c_a" value="#39FF14"></div></div>
+      <div class="color-row"><span data-i18n="col_titles">Заголовки</span><div class="color-swatch"><input type="color" id="cnt_c_t" value="#FFFFFF"></div></div>
+      <div class="color-row"><span data-i18n="col_body">Текст body</span><div class="color-swatch"><input type="color" id="cnt_c_s" value="#E8E8E8"></div></div>
+
+      <div class="sub-hd" style="color:#00BFFF" data-i18n="sh_cntphoto">Фото слайда</div>
+      <label class="ul-btn" id="cnt-bg-lbl" for="cnt-bg-f">
+        <span class="ul-icon">🖼</span>
+        <span id="cnt-bg-t" data-i18n="ul_cntphoto">Загрузить фото слайда</span>
+        <span class="ul-clr" id="cnt-bg-clr" onclick="clearImg('content');return false">✕</span>
+      </label>
+      <input type="file" id="cnt-bg-f" accept="image/*">
+
+      <div class="rw" style="margin-top:6px"><span class="n" data-i18n="rl_bright">Яркость (1.0=норм, 2.0=ярче)</span><span class="rv" id="rv_bb">1.00</span></div>
+      <input type="range" id="s_bb" min="0.1" max="2.0" step="0.01" value="1.00">
+      <div class="rw"><span class="n" data-i18n="rl_dark">Затемнение</span><span class="rv" id="rv_cov">0.00</span></div>
+      <input type="range" id="s_cov" min="0" max="0.95" step="0.01" value="0.00">
+    </div>
+  </div>
+
+  <!-- ░░ CTA ░░ -->
+  <div class="sec cl" id="sec-cta">
+    <div class="sh" onclick="toggleSec('cta')">
+      <span class="sh-label"><span class="sh-icon">📣</span><span data-i18n="sec_cta">CTA</span><span class="sh-tag cta" data-i18n="sec_cta_tag">ПРИЗЫВ</span></span>
+      <span class="ar" id="ar-cta">▾</span>
+    </div>
+    <div class="sbd hi" id="bd-cta">
+      <div class="sub-hd" style="color:#FF6B35" data-i18n="sh_texts">Тексты</div>
+      <div class="lbl" data-i18n="lbl_ctatitle1">Загол. 1</div><input type="text" id="t_c1" value="НАПИШИТЕ">
+      <div class="lbl" data-i18n="lbl_ctatitle2">Загол. 2</div><input type="text" id="t_c2" value="НАМ СЕЙЧАС">
+      <div class="lbl" data-i18n="lbl_body">Body</div><textarea id="t_ctb">Задайте вопрос — бесплатная консультация</textarea>
+      <div class="lbl" data-i18n="lbl_handle">Хэндл</div><input type="text" id="t_hd" value="@brand_handle">
+
+      <div class="sub-hd" style="color:#FF6B35" data-i18n="sh_sizes">Размеры</div>
+      <div class="rw"><span class="n" data-i18n="rl_heading">Заголовок</span><span class="rv" id="rv_cth">88</span></div>
+      <input type="range" id="s_cth" min="40" max="160" step="2" value="88">
+      <div class="rw"><span class="n">Body</span><span class="rv" id="rv_ctb">28</span></div>
+      <input type="range" id="s_ctb" min="12" max="60" value="28">
+
+
+      <div class="sub-hd" style="color:#FF6B35" data-i18n="sh_fontscol">Шрифты и цвета</div>
+      <div class="lbl" data-i18n="lbl_fd">Заголовочный</div>
+      <select id="cta_f_d">
+        <option value="Anton" selected>Anton</option>
+        <option value="Barlow">Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+      <div class="lbl" data-i18n="lbl_fb">Текстовый</div>
+      <select id="cta_f_b">
+        <option value="Anton">Anton</option>
+        <option value="Barlow" selected>Barlow</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Inter">Inter</option>
+        <option value="Lato">Lato</option>
+        <option value="Montserrat">Montserrat</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Black Han Sans">Black Han Sans</option>
+      </select>
+      <div class="color-row"><span data-i18n="col_accent">Акцент</span><div class="color-swatch" id="sw_cta_ca"><input type="color" id="cta_c_a" value="#39FF14"></div></div>
+      <div class="color-row"><span data-i18n="col_title1">Заголовок 1</span><div class="color-swatch" id="sw_cta_ct"><input type="color" id="cta_c_t" value="#FFFFFF"></div></div>
+      <div class="color-row"><span data-i18n="col_body">Body текст</span><div class="color-swatch" id="sw_cta_cs"><input type="color" id="cta_c_s" value="#E8E8E8"></div></div>
+
+      <div class="sub-hd" style="color:#FF6B35" data-i18n="sh_ctaphoto">Фото CTA</div>
+      <label class="ul-btn" id="cta-bg-lbl" for="cta-bg-f">
+        <span class="ul-icon">🖼</span>
+        <span id="cta-bg-t" data-i18n="ul_ctaphoto">Загрузить фото CTA</span>
+        <span class="ul-clr" id="cta-bg-clr" onclick="clearImg('cta');return false">✕</span>
+      </label>
+      <input type="file" id="cta-bg-f" accept="image/*">
+
+      <div class="rw" style="margin-top:8px"><span class="n" data-i18n="rl_bright">Яркость (1.0=норм, 2.0=ярче)</span><span class="rv" id="rv_ctabb">1.00</span></div>
+      <input type="range" id="s_ctabb" min="0.1" max="2.0" step="0.01" value="1.00">
+      <div class="rw"><span class="n" data-i18n="rl_dark">Затемнение</span><span class="rv" id="rv_ctaov">0.40</span></div>
+      <input type="range" id="s_ctaov" min="0" max="0.95" step="0.01" value="0.40">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:7px 10px;background:#111;border-radius:5px;border:1px solid #1e1e1e">
+        <input type="checkbox" id="cta-use-cover" checked style="width:16px;height:16px;cursor:pointer;accent-color:var(--acc)">
+        <label for="cta-use-cover" style="font-size:11px;color:#888;cursor:pointer"><span data-i18n="cta_use_cover_lbl">Нет фото CTA → использовать фото обложки</span></label>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sb -->
+
+<!-- ══════════════════════════════════════════ MAIN ══════════════════════════════════════════ -->
+<div id="main">
+  <div id="slides">
+    <div class="sc" id="col-cover"><canvas id="c-cover"></canvas><div class="sl" id="lbl-cover">обложка</div></div>
+    <div class="sc" id="col-content"><canvas id="c-content"></canvas><div class="sl" id="lbl-content">контент</div></div>
+    <div class="sc" id="col-cta"><canvas id="c-cta"></canvas><div class="sl" id="lbl-cta">cta</div></div>
+  </div>
+  <div id="dbg">Загрузка...</div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- ══════════════════════════════════════════ JSON MODAL ══════════════════════════════════════════ -->
+<div id="mod">
+  <div class="mbox">
+    <div class="mh">
+      <h2 data-i18n="json_title">Design JSON — скопируй в presets_all.json</h2>
+      <button class="btn" id="mod-close" style="min-height:30px;padding:0 10px;font-size:16px;background:none;border:none;color:#666">✕</button>
+    </div>
+    <div class="mb"><pre id="jout"></pre></div>
+    <div class="mf">
+      <button class="btn" id="cbtn"><span data-i18n="btn_copy">📋 Копировать</span></button>
+      <button class="btn on" id="mod-done"><span data-i18n="btn_done">Готово</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── UTILITY ──
+function g(id){return document.getElementById(id)}
+function gv(id){var e=g(id);return e?e.value:''}
+function gf(id){return parseFloat(gv(id))||0}
+function dbg(msg){var d=g('dbg');if(d)d.textContent=msg}
+
+function tap(el,fn){
+  if(!el)return;
+  var touched=false;
+  el.addEventListener('touchend',function(e){touched=true;e.preventDefault();fn.call(el,e)},{passive:false});
+  el.addEventListener('click',function(e){if(touched){touched=false;return}fn.call(el,e)});
+}
+
+// ── STATE ──
+var coverImg=null, contentImg=null, ctaImg=null, loImg=null;
+var isDark=true, zoom=22, curView='all', RT=null;
+function R(){clearTimeout(RT);RT=setTimeout(drawAll,30)}
+
+// ── SECTION TOGGLES ──
+function toggleSec(name){
+  var sec=g('sec-'+name);
+  var bd=g('bd-'+name);
+  var ar=g('ar-'+name);
+  if(!sec||!bd)return;
+  var isOpen=!bd.classList.contains('hi');
+  if(isOpen){bd.classList.add('hi');sec.classList.add('cl');}
+  else{bd.classList.remove('hi');sec.classList.remove('cl');}
+}
+
+// ── RANGES ──
+var RANGES=[
+  ['s_st','rv_st'],['s_s1','rv_s1'],['s_s2','rv_s2'],['s_ss','rv_ss'],
+  ['s_vy','rv_vy'],['s_ls','rv_ls'],
+  ['s_cbb','rv_cbb'],['s_co','rv_co'],
+  ['s_ch','rv_ch'],['s_cb','rv_cb'],['s_cq','rv_cq'],['s_ps','rv_ps'],['s_fl','rv_fl'],
+  ['s_bb','rv_bb'],['s_cov','rv_cov'],
+  ['s_cth','rv_cth'],['s_ctb','rv_ctb'],
+  ['s_ctabb','rv_ctabb'],['s_ctaov','rv_ctaov'],
+  ['s_cvy','rv_cvy'],['s_cvps','rv_cvps'],
+  ['s_sw','rv_sw'],['s_sh','rv_sh']
+];
+RANGES.forEach(function(p){
+  var el=g(p[0]);if(!el)return;
+  function fn(){var rv=g(p[1]);if(rv)rv.textContent=el.value;R();}
+  el.addEventListener('input',fn);el.addEventListener('change',fn);
+});
+
+// ── TEXT/COLOR INPUTS ──
+['t_tag','t_t1','t_t2','t_sub','t_no','t_ch','t_cb','t_q',
+ 't_c1','t_c2','t_ctb','t_hd'].forEach(function(id){
+  var el=g(id);if(!el)return;
+  el.addEventListener('input',R);el.addEventListener('change',R);
+});
+// Global colors → push to all per-slide inputs so they stay in sync
+var G_COLOR_MAP={
+  'c_a': ['cov_c_a','cnt_c_a','cta_c_a'],
+  'c_t': ['cov_c_t','cnt_c_t','cta_c_t'],
+  'c_s': ['cov_c_s','cnt_c_s','cta_c_s'],
+  'c_bg': []
+};
+['c_a','c_t','c_s','c_bg'].forEach(function(id){
+  var el=g(id);if(!el)return;
+  function onGlobalColor(){
+    var v=el.value;
+    syncSwatch(id);
+    var targets=G_COLOR_MAP[id]||[];
+    targets.forEach(function(tid){
+      var t=g(tid);if(!t)return;
+      t.value=v;syncSwatch(tid);
+    });
+    R();
+  }
+  el.addEventListener('input',onGlobalColor);
+  el.addEventListener('change',onGlobalColor);
+});
+// Global fonts → push to all per-slide selects
+var G_FONT_MAP={
+  'f_d': ['cov_f_d','cnt_f_d','cta_f_d'],
+  'f_b': ['cov_f_b','cnt_f_b','cta_f_b']
+};
+['f_d','f_b'].forEach(function(id){
+  var el=g(id);if(!el)return;
+  el.addEventListener('change',function(){
+    var v=el.value;
+    var targets=G_FONT_MAP[id]||[];
+    targets.forEach(function(tid){var t=g(tid);if(t)t.value=v;});
+    loadFonts();R();
+  });
+});
+// Content-specific font/color inputs
+['cnt_c_a','cnt_c_t','cnt_c_s',
+ 'cov_c_a','cov_c_t','cov_c_s',
+ 'cta_c_a','cta_c_t','cta_c_s'].forEach(function(id){
+  var el=g(id);if(!el)return;
+  el.addEventListener('input',function(){syncSwatch(id);R();});
+  el.addEventListener('change',function(){syncSwatch(id);R();});
+});
+['cnt_f_d','cnt_f_b','cov_f_d','cov_f_b','cta_f_d','cta_f_b'].forEach(function(id){
+  var el=g(id);if(!el)return;
+  el.addEventListener('change',function(){loadFonts();R();});
+});
+
+// Logo position
+function setLP(v){
+  var el=g('t_lp');if(el)el.value=v;
+  ['left','center','right'].forEach(function(x){
+    var b=g('lp-'+x);if(b)b.classList.toggle('on',x===v);
+  });
+  R();
+}
+var ctaChk=g('cta-use-cover');
+if(ctaChk){
+  ctaChk.addEventListener('change',R);
+  ctaChk.addEventListener('click',function(){setTimeout(R,20);});
+}
+
+// ── ZOOM ──
+var zsl=g('zslider');
+if(zsl){
+  function onZoom(){zoom=+zsl.value;var l=g('zlabel');if(l)l.textContent=zoom+'%';R();}
+  zsl.addEventListener('input',onZoom);zsl.addEventListener('change',onZoom);
+}
+
+// ── VIEW TABS ──
+function sv(v){
+  curView=v;
+  ['all','cover','content','cta'].forEach(function(x){var t=g('tb-'+x);if(t)t.classList.toggle('on',x===v)});
+  ['cover','content','cta'].forEach(function(x){var c=g('col-'+x);if(c)c.style.display=(v==='all'||v===x)?'':'none'});
+  R();
+}
+['all','cover','content','cta'].forEach(function(v){tap(g('tb-'+v),function(){sv(v)})});
+['cover','content','cta'].forEach(function(v){
+  tap(g('c-'+v),function(){sv(v)});
+  tap(g('lbl-'+v),function(){sv(v)});
+});
+
+// ── LIGHT/DARK ──
+tap(g('ws-btn'),function(){
+  isDark=!isDark;
+  var bgColor=isDark?'#080808':'#f2f2f2';
+  var r=document.documentElement.style;
+  if(isDark){
+    r.setProperty('--bg','#080808');r.setProperty('--sb','#0d0d0d');
+    r.setProperty('--border','#1e1e1e');r.setProperty('--text','#ccc');
+    r.setProperty('--input','#111');r.setProperty('--muted','#666');
+  }else{
+    r.setProperty('--bg','#f2f2f2');r.setProperty('--sb','#ffffff');
+    r.setProperty('--border','#ddd');r.setProperty('--text','#222');
+    r.setProperty('--input','#f8f8f8');r.setProperty('--muted','#555');
+  }
+  document.body.style.background=bgColor;document.body.style.color=isDark?'#ccc':'#222';
+  ['wrap','main','slides','zrow'].forEach(function(id){
+    var el=g(id);if(el)el.style.background=bgColor;
+  });
+  g('ws-btn').textContent=isDark?'☀':'🌙';
+});
+
+// ── ASPECT RATIO ──
+function setAR(w,h){
+  var sw=g('s_sw'),sh=g('s_sh');
+  if(sw){sw.value=w;var r=g('rv_sw');if(r)r.textContent=w;}
+  if(sh){sh.value=h;var r2=g('rv_sh');if(r2)r2.textContent=h;}
+  ['ar45','ar11','ar916','ar169'].forEach(function(id){
+    var el=g(id);if(el)el.classList.toggle('on',id==='ar'+(w===h?'11':(w<h?(w===1080&&h===1350?'45':'916'):'169')));
+  });
+  R();
+}
+tap(g('ar45'),function(){setAR(1080,1350)});
+tap(g('ar11'),function(){setAR(1080,1080)});
+tap(g('ar916'),function(){setAR(1080,1920)});
+tap(g('ar169'),function(){setAR(1920,1080)});
+
+// ── FILE UPLOADS ──
+function loadFile(fileInput, type, lblId, txtId, clrId){
+  var input=g(fileInput);
+  if(!input)return;
+  input.addEventListener('change',function(){
+    if(!this.files||!this.files[0])return;
+    var f=this.files[0];
+    var rd=new FileReader();
+    rd.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        if(type==='cover')coverImg=img;
+        else if(type==='content')contentImg=img;
+        else if(type==='cta')ctaImg=img;
+        else if(type==='logo')loImg=img;
+        var lbl=g(lblId);if(lbl)lbl.classList.add('got');
+        var t=g(txtId);if(t)t.textContent='✅ '+f.name.slice(0,20);
+        dbg(type+' загружено: '+f.name);R();
+      };
+      img.src=e.target.result;
+    };
+    rd.readAsDataURL(f);
+  });
+}
+loadFile('cov-bg-f','cover','cov-bg-lbl','cov-bg-t','cov-bg-clr');
+loadFile('cnt-bg-f','content','cnt-bg-lbl','cnt-bg-t','cnt-bg-clr');
+loadFile('cta-bg-f','cta','cta-bg-lbl','cta-bg-t','cta-bg-clr');
+loadFile('lo-f','logo','lo-lbl','lo-t','lo-clr');
+
+function clearImg(type){
+  if(type==='cover'){coverImg=null;var l=g('cov-bg-lbl');if(l)l.classList.remove('got');var t=g('cov-bg-t');if(t)t.textContent='Загрузить фото обложки';}
+  else if(type==='content'){contentImg=null;var l2=g('cnt-bg-lbl');if(l2)l2.classList.remove('got');var t2=g('cnt-bg-t');if(t2)t2.textContent='Загрузить фото слайда';}
+  else if(type==='cta'){ctaImg=null;var l3=g('cta-bg-lbl');if(l3)l3.classList.remove('got');var t3=g('cta-bg-t');if(t3)t3.textContent='Загрузить фото CTA';}
+  else if(type==='logo'){loImg=null;var l4=g('lo-lbl');if(l4)l4.classList.remove('got');var t4=g('lo-t');if(t4)t4.textContent='Загрузить логотип';}
+  R();
+}
+
+// ── FONTS ──
+var _fl=null;
+function loadFonts(){
+  try{
+    var noW=['Anton','Bebas+Neue','Black+Han+Sans'];
+    var families=[];
+    ['f_d','f_b','cov_f_d','cov_f_b','cnt_f_d','cnt_f_b','cta_f_d','cta_f_b'].forEach(function(id){
+      var v=(gv(id)||'').replace(/ /g,'+');if(!v)return;
+      var already=families.some(function(f){return f.split(':')[0]===v});
+      if(already)return;
+      families.push(noW.indexOf(v)>=0?(v+':ital@0'):(v+':wght@400;700;900'));
+    });
+    if(!families.length)return;
+    if(_fl&&_fl.parentNode)_fl.parentNode.removeChild(_fl);
+    _fl=document.createElement('link');_fl.rel='stylesheet';
+    _fl.href='https://fonts.googleapis.com/css2?family='+families.join('&family=')+'&display=swap';
+    document.head.appendChild(_fl);setTimeout(R,900);
+  }catch(ex){}
+}
+
+// ── CANVAS HELPERS ──
+function PP(){
+  return{
+    acc:gv('c_a')||'#39FF14', tx:gv('c_t')||'#FFFFFF',
+    sx:gv('c_s')||'#E8E8E8', bgc:gv('c_bg')||'#050505',
+    fd:gv('f_d')||'Anton', fb:gv('f_b')||'Barlow',
+    lp:gv('t_lp')||'right',
+    // Cover — own fonts/colors (fallback to global)
+    covfd:gv('cov_f_d')||'Anton',
+    covfb:gv('cov_f_b')||'Barlow',
+    covacc:gv('cov_c_a')||gv('c_a')||'#39FF14',
+    covtx:gv('cov_c_t')||gv('c_t')||'#FFFFFF',
+    covsx:gv('cov_c_s')||gv('c_s')||'#E8E8E8',
+    cbb:gf('s_cbb')||1.0, co:gf('s_co')||0.0,
+    tag:gv('t_tag'), t1:gv('t_t1'), t2:gv('t_t2'), sub:gv('t_sub'),
+    st:gf('s_st')||22, s1:gf('s_s1')||96, s2:gf('s_s2')||96,
+    ss:gf('s_ss')||28, vy:gf('s_vy')||0, ls:gf('s_ls')||150,
+    // Content — own fonts/colors (fallback to global if not set)
+    cfd:gv('cnt_f_d')||'Anton',
+    cfb:gv('cnt_f_b')||'Barlow',
+    cacc:gv('cnt_c_a')||gv('c_a')||'#39FF14',
+    ctx2:gv('cnt_c_t')||gv('c_t')||'#FFFFFF',
+    csx:gv('cnt_c_s')||gv('c_s')||'#E8E8E8',
+    bb:gf('s_bb')||1.0, cov:gf('s_cov')||0.0,
+    no:gv('t_no'), ch:gv('t_ch'), cb:gv('t_cb'), q:gv('t_q'),
+    sch:gf('s_ch')||72, scb:gf('s_cb')||32, scq:gf('s_cq')||26,
+    ps:gf('s_ps')||30, fl:gf('s_fl')||50,
+    cvy:gf('s_cvy')||0, cvps:gf('s_cvps')||24,
+    // CTA — own fonts/colors
+    ctafd:gv('cta_f_d')||'Anton',
+    ctafb:gv('cta_f_b')||'Barlow',
+    ctaacc:gv('cta_c_a')||gv('c_a')||'#39FF14',
+    ctatx:gv('cta_c_t')||gv('c_t')||'#FFFFFF',
+    ctasx:gv('cta_c_s')||gv('c_s')||'#E8E8E8',
+    c1:gv('t_c1'), c2:gv('t_c2'), ctb:gv('t_ctb'), hd:gv('t_hd'),
+    scth:gf('s_cth')||88, sctb:gf('s_ctb')||28,
+    ctabb:gf('s_ctabb')||1.0, ctaov:gf('s_ctaov')||0.4,
+    ctaUseCover:g('cta-use-cover')?g('cta-use-cover').checked:true
+  };
+}
+
+function H2R(h){
+  h=h||'#39FF14';
+  return{r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};
+}
+
+function fBg(ctx,cW,cH,img,br,bgc){
+  ctx.fillStyle=bgc||'#050505';ctx.fillRect(0,0,cW,cH);
+  if(img&&(img.naturalWidth||img.width)>0){
+    var iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,s=Math.max(cW/iw,cH/ih);
+    var safeBr=Math.max(0.05,Math.min(2,br||1));
+    ctx.drawImage(img,(cW-iw*s)/2,(cH-ih*s)/2,iw*s,ih*s);
+    if(safeBr<1){
+      ctx.fillStyle='rgba(0,0,0,'+(1-safeBr)+')';
+      ctx.fillRect(0,0,cW,cH);
+    }
+    if(safeBr>1){
+      var ba=Math.min(0.75,(safeBr-1)*0.6);
+      ctx.fillStyle='rgba(255,255,255,'+ba+')';
+      ctx.fillRect(0,0,cW,cH);
+    }
+  }
+}
+
+function fOv(ctx,w,h,a){
+  ctx.fillStyle='rgba(0,0,0,'+a+')';ctx.fillRect(0,0,w,h);
+}
+
+function wt(ctx,txt,x,y,mW,lh){
+  if(!txt)return y;
+  var words=String(txt).split(' '),line='',ls=[];
+  for(var i=0;i<words.length;i++){
+    var t=line+(line?' ':'')+words[i];
+    if(line&&ctx.measureText(t).width>mW){ls.push(line);line=words[i];}
+    else line=t;
+  }
+  if(line)ls.push(line);
+  for(var j=0;j<ls.length;j++){ctx.fillText(ls[j],x,y);y+=lh;}
+  return y;
+}
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+}
+
+function invLogo(img,sz){
+  if(!img)return null;
+  try{
+    var t=document.createElement('canvas');t.width=sz;t.height=sz;
+    var tc=t.getContext('2d');if(!tc)return null;
+    var iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,s=Math.min(sz/iw,sz/ih);
+    tc.drawImage(img,(sz-iw*s)/2,(sz-ih*s)/2,iw*s,ih*s);
+    var id=tc.getImageData(0,0,sz,sz),d=id.data;
+    for(var i=0;i<d.length;i+=4){var v=(d[i]+d[i+1]+d[i+2])/3;d[i]=d[i+1]=d[i+2]=255-v;}
+    tc.putImageData(id,0,0);return t;
+  }catch(ex){return null;}
+}
+
+// ── DRAW FUNCTIONS ──
+function drawAll(){
+  try{
+    var W=Math.round(gf('s_sw'))||1080,H=Math.round(gf('s_sh'))||1350;
+    var sc=zoom/100;if(sc<=0||W<10||H<10)return;
+    var sw=Math.round(W*sc),sh=Math.round(H*sc);if(sw<5||sh<5)return;
+    dbg('✓ '+sw+'x'+sh+' zoom='+zoom+'%');
+    ['cover','content','cta'].forEach(function(id){
+      var c=g('c-'+id);if(c){c.width=sw;c.height=sh;c.style.width=sw+'px';c.style.height=sh+'px';}
+    });
+    dCover(g('c-cover'),sc);
+    dContent(g('c-content'),sc);
+    dCTA(g('c-cta'),sc);
+  }catch(ex){dbg('ERR: '+ex.message);}
+}
+
+function dCover(cv,sc){
+  if(!cv)return;
+  var ctx=cv.getContext('2d');if(!ctx)return;
+  var p=PP(),k=sc,cW=cv.width,cH=cv.height;
+  ctx.clearRect(0,0,cW,cH);
+  fBg(ctx,cW,cH,coverImg,p.cbb,p.bgc);
+  fOv(ctx,cW,cH,p.co);
+  var px=Math.round(68*k),acc=p.covacc,mW=cW-px*2;
+  var covfd=p.covfd,covfb=p.covfb;
+  var y=Math.round(64*k);
+
+  // Logo — position depends on lp setting
+  if(loImg){
+    var lsz=Math.round(p.ls*k);
+    var li=invLogo(loImg,lsz);
+    if(li){
+      var lx;
+      if(p.lp==='left') lx=px;
+      else if(p.lp==='center') lx=Math.round(cW/2-lsz/2);
+      else lx=cW-px-lsz; // right (default)
+      ctx.drawImage(li,lx,Math.round(50*k));
+    }
+  }
+
+  // Tag badge
+  if(p.tag){
+    var tsz=Math.round(p.st*k);
+    ctx.font='700 '+tsz+'px '+covfd+',sans-serif';
+    var tt=p.tag.toUpperCase(),tw=ctx.measureText(tt).width;
+    var tpx=Math.round(20*k),tH=tsz+Math.round(18*k),tW=tw+tpx*2+Math.round(16*k);
+    var rgb=H2R(acc);
+    ctx.fillStyle='rgba('+rgb.r+','+rgb.g+','+rgb.b+',.18)';
+    rr(ctx,px,y,tW,tH,4);ctx.fill();
+    ctx.strokeStyle='rgba('+rgb.r+','+rgb.g+','+rgb.b+',.6)';
+    ctx.lineWidth=1.5;rr(ctx,px,y,tW,tH,4);ctx.stroke();
+    ctx.fillStyle=acc;
+    ctx.textBaseline='middle';ctx.textAlign='left';
+    ctx.font='700 '+tsz+'px '+covfd+',sans-serif';
+    ctx.fillText(tt,px+tpx,y+tH/2);
+    y+=tH+Math.round(p.ps*k);
+  }
+
+  // Titles
+  var s1=Math.round(p.s1*k),s2=Math.round(p.s2*k),ss=Math.round(p.ss*k);
+  var botH=Math.round(60*k);
+  var remH=cH-y-botH-Math.round(68*k);
+  var bH=(p.t1?s1*1.1:0)+(p.t2?s2*1.1:0)+(p.sub?ss*1.6*2+Math.round(p.cvps*k):0);
+  var ty=y+Math.max(0,(remH-bH)/2)+Math.round(p.vy*k);
+
+  ctx.textBaseline='top';ctx.textAlign='left';
+  if(p.t1){
+    ctx.font='900 '+s1+'px '+covfd+',sans-serif';
+    ctx.fillStyle=p.covtx;
+    ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=Math.round(16*k);
+    ctx.fillText(p.t1,px,ty);
+    ctx.shadowBlur=0;ty+=s1*1.1+Math.round(p.cvps*k*0.5);
+  }
+  if(p.t2){
+    ctx.font='900 '+s2+'px '+covfd+',sans-serif';
+    ctx.fillStyle=acc;
+    ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=Math.round(12*k);
+    ctx.fillText(p.t2,px,ty);
+    ctx.shadowBlur=0;ty+=s2*1.1+Math.round(p.cvps*k);
+  }
+  if(p.sub){
+    ty+=Math.round(p.cvps*k*0.3);
+    ctx.font='400 '+ss+'px '+covfb+',sans-serif';
+    ctx.fillStyle=p.covsx;ctx.globalAlpha=.85;
+    wt(ctx,p.sub,px,ty,mW,ss*1.6);
+    ctx.globalAlpha=1;
+  }
+
+  // Swipe hint
+  ctx.font='400 '+Math.round(17*k)+'px '+covfb+',sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.35)';
+  ctx.textBaseline='bottom';ctx.textAlign='left';
+  ctx.fillText((D_LANGS[curLangD]&&D_LANGS[curLangD].swipe_hint)||'Листайте →',px,cH-Math.round(44*k));
+}
+
+function dContent(cv,sc){
+  if(!cv)return;
+  var ctx=cv.getContext('2d');if(!ctx)return;
+  var p=PP(),k=sc,cW=cv.width,cH=cv.height;
+  ctx.clearRect(0,0,cW,cH);
+  fBg(ctx,cW,cH,contentImg,p.bb,p.bgc);
+  fOv(ctx,cW,cH,p.cov);
+  var px=Math.round(76*k),mW=cW-px*2,acc=p.cacc;
+  var cfd=p.cfd,cfb=p.cfb;
+  var y=Math.round(64*k)+Math.round(p.cvy*k);
+  ctx.textBaseline='top';ctx.textAlign='left';
+
+  // Slide number
+  if(p.no){
+    ctx.font='700 '+Math.round(20*k)+'px '+cfd+',sans-serif';
+    ctx.fillStyle=acc;ctx.fillText(p.no,px,y);
+    y+=Math.round(22*k)+Math.round(p.ps*.5*k);
+  }
+
+  // Heading
+  if(p.ch){
+    var hs=Math.round(p.sch*k);
+    ctx.font='900 '+hs+'px '+cfd+',sans-serif';
+    ctx.fillStyle=p.ctx2;
+    ctx.shadowColor='rgba(0,0,0,.85)';ctx.shadowBlur=8;
+    y=wt(ctx,p.ch,px,y,mW,hs*1.12);
+    ctx.shadowBlur=0;y+=Math.round(p.ps*k);
+  }
+
+  // Body text
+  if(p.cb){
+    var bs=Math.round(p.scb*k);
+    ctx.font='400 '+bs+'px '+cfb+',sans-serif';
+    ctx.fillStyle=p.csx;
+    y=wt(ctx,p.cb,px,y,mW,bs*1.65);
+  }
+
+  // Question block
+  if(p.q){
+    y+=Math.round(p.ps*k);
+    var qs=Math.round(p.scq*k),qp=Math.round(p.ps*.6*k);
+    var ql=Math.round(qs*.65),qH=ql+qs*1.5+qp*2+8;
+    var rgb2=H2R(acc);
+    ctx.fillStyle='rgba('+rgb2.r+','+rgb2.g+','+rgb2.b+',.1)';
+    ctx.fillRect(px,y,mW,qH);
+    ctx.fillStyle=acc;ctx.fillRect(px,y,4,qH);
+    ctx.font='700 '+ql+'px '+cfd+',sans-serif';
+    ctx.fillStyle=acc;ctx.fillText((D_LANGS[curLangD]&&D_LANGS[curLangD].question_lbl)||'ВОПРОС:',px+qp+4,y+qp);
+    ctx.font='italic 400 '+qs+'px '+cfb+',sans-serif';
+    ctx.fillStyle=p.ctx2;
+    wt(ctx,p.q,px+qp+4,y+qp+ql+6,mW-qp*2,qs*1.5);
+  }
+
+  // Footer — always keeps logo fully within slide
+  var flSz=Math.round(p.fl*k);
+  var fyPad=Math.round(14*k);
+  var fy=cH-flSz-fyPad*2;
+  if(fy<cH*0.72)fy=Math.round(cH*0.72); // never eat more than 28% of slide
+  ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(px,fy);ctx.lineTo(cW-px,fy);ctx.stroke();
+  if(loImg&&flSz>=6){
+    var li2=invLogo(loImg,flSz);
+    if(li2)ctx.drawImage(li2,px,fy+fyPad);
+  }
+  ctx.font='400 '+Math.round(16*k)+'px '+cfb+',sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.textBaseline='middle';ctx.textAlign='right';
+  var pageY=fy+flSz/2+fyPad;
+  if(pageY>cH-fyPad)pageY=cH-fyPad;
+  ctx.fillText((p.no||'1')+'/7',cW-px,pageY);
+  ctx.textAlign='left';
+}
+
+function dCTA(cv,sc){
+  if(!cv)return;
+  var ctx=cv.getContext('2d');if(!ctx)return;
+  var p=PP(),k=sc,cW=cv.width,cH=cv.height;
+  ctx.clearRect(0,0,cW,cH);
+  var ctaBg=(ctaImg||(p.ctaUseCover?coverImg:null));
+  fBg(ctx,cW,cH,ctaBg,p.ctabb,p.bgc);
+  fOv(ctx,cW,cH,p.ctaov);
+  var acc=p.ctaacc,rgb=H2R(acc),cx=cW/2;
+  var ctafd=p.ctafd,ctafb=p.ctafb;
+  var lsz=Math.round(p.ls*k),h1=Math.round(p.scth*k),bsz=Math.round(p.sctb*k),ps=Math.round(p.ps*k);
+  var tgP=Math.round(16*k),tgH=tgP*2+Math.round(50*k);
+  var tot=(loImg?lsz+ps:0)+h1*2+ps*2+(p.ctb?bsz*1.55*2+ps:0)+tgH;
+  var y=Math.max(Math.round(cH*.07),(cH-tot)/2);
+
+  ctx.textAlign='center';ctx.textBaseline='top';
+
+  if(loImg){var li3=invLogo(loImg,lsz);if(li3)ctx.drawImage(li3,cx-lsz/2,y);y+=lsz+ps;}
+
+  ctx.font='900 '+h1+'px '+ctafd+',sans-serif';
+  ctx.fillStyle=p.ctatx;ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=12;
+  ctx.fillText((p.c1||'').toUpperCase(),cx,y);y+=h1;
+  ctx.fillStyle=acc;ctx.fillText((p.c2||'').toUpperCase(),cx,y);
+  ctx.shadowBlur=0;y+=h1+ps;
+
+  if(p.ctb){
+    ctx.textAlign='center';
+    ctx.font='400 '+bsz+'px '+ctafb+',sans-serif';
+    ctx.fillStyle=p.ctasx;ctx.globalAlpha=.85;
+    // draw centered: use wt but with center x and half-width; re-implement as center
+    var ctbLines=p.ctb.split(' ');
+    var ctbLine='',ctbY=y;
+    var ctbMaxW=cW*0.72;
+    var ctbAll=[];
+    for(var ci=0;ci<ctbLines.length;ci++){
+      var ctbT=ctbLine+(ctbLine?' ':'' )+ctbLines[ci];
+      if(ctbLine&&ctx.measureText(ctbT).width>ctbMaxW){ctbAll.push(ctbLine);ctbLine=ctbLines[ci];}
+      else ctbLine=ctbT;
+    }
+    if(ctbLine)ctbAll.push(ctbLine);
+    for(var cj=0;cj<ctbAll.length;cj++){ctx.fillText(ctbAll[cj],cx,ctbY);ctbY+=bsz*1.55;}
+    y=ctbY;
+    ctx.globalAlpha=1;y+=ps;
+  }
+
+  var tgW=Math.min(cW-80,Math.round(680*k));
+  ctx.fillStyle='rgba('+rgb.r+','+rgb.g+','+rgb.b+',.14)';
+  rr(ctx,cx-tgW/2,y,tgW,tgH,8);ctx.fill();
+  ctx.strokeStyle='rgba('+rgb.r+','+rgb.g+','+rgb.b+',.5)';
+  ctx.lineWidth=1.5;rr(ctx,cx-tgW/2,y,tgW,tgH,8);ctx.stroke();
+  ctx.font='600 '+Math.round(17*k)+'px '+ctafb+',sans-serif';
+  ctx.fillStyle=acc;ctx.fillText((D_LANGS[curLangD]&&D_LANGS[curLangD].tg_open)||'Telegram',cx,y+tgP);
+  ctx.font='900 '+Math.round(27*k)+'px '+ctafd+',sans-serif';
+  ctx.fillStyle=p.ctatx;ctx.fillText(p.hd||'@handle',cx,y+tgP+Math.round(22*k));
+  ctx.textAlign='left';
+}
+
+// ── JSON MODAL ──
+function buildJSON(){
+  var p=PP();
+  return{
+    // Global
+    font_display: p.fd,
+    font_body: p.fb,
+    color_accent: p.acc,
+    color_text: p.tx,
+    color_subtext: p.sx,
+    color_bg: p.bgc,
+    width: Math.round(gf('s_sw'))||1080,
+    height: Math.round(gf('s_sh'))||1350,
+
+    // Cover
+    cover:{
+      bg_brightness: p.cbb, overlay: p.co,
+      font_display: p.covfd, font_body: p.covfb,
+      color_accent: p.covacc, color_text: p.covtx, color_subtext: p.covsx,
+      tag_font_size: p.st, title_line1_font_size: p.s1,
+      title_line2_font_size: p.s2, subtitle_font_size: p.ss,
+      paragraph_spacing: p.cvps, title_vertical_offset: p.vy,
+      logo_size: p.ls, logo_position: p.lp
+    },
+
+    // Content slides
+    content:{
+      bg_brightness: p.bb,
+      overlay: p.cov,
+      font_display: p.cfd,
+      font_body: p.cfb,
+      color_accent: p.cacc,
+      color_text: p.ctx2,
+      color_subtext: p.csx,
+      heading_font_size: p.sch,
+      body_font_size: p.scb,
+      question_font_size: p.scq,
+      paragraph_spacing: p.ps,
+      footer_logo_height: p.fl
+    },
+
+    // CTA
+    cta:{
+      bg_brightness: p.ctabb, overlay: p.ctaov, use_cover_bg: p.ctaUseCover,
+      font_display: p.ctafd, font_body: p.ctafb,
+      color_accent: p.ctaacc, color_text: p.ctatx, color_subtext: p.ctasx,
+      heading_font_size: p.scth, body_font_size: p.sctb
+    }
+  };
+}
+
+function openMod(){
+  var jo=g('jout');
+  if(jo)jo.textContent=JSON.stringify(buildJSON(),null,2);
+  var mod=g('mod');if(mod)mod.classList.add('op');
+}
+function closeMod(){var mod=g('mod');if(mod)mod.classList.remove('op');}
+tap(g('json-btn'),openMod);
+tap(g('mod-close'),closeMod);
+tap(g('mod-done'),closeMod);
+var modEl=g('mod');
+if(modEl)modEl.addEventListener('click',function(e){if(e.target===this)closeMod();});
+
+var cb=g('cbtn');
+if(cb)tap(cb,function(){
+  var jo=g('jout');var t=jo?jo.textContent:'';
+  function ok(){cb.textContent='✅ Скопировано!';setTimeout(function(){cb.textContent='📋 Копировать';},2000);}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok).catch(function(){fc(t);ok();});
+  else{fc(t);ok();}
+});
+function fc(t){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;top:-400px;opacity:0';document.body.appendChild(a);a.focus();a.select();try{document.execCommand('copy');}catch(ex){}document.body.removeChild(a);}
+
+// ── COLOR SWATCHES SYNC ──
+function syncSwatch(id){
+  var inp=g(id);if(!inp)return;
+  var sw=inp.parentElement;
+  if(sw&&sw.classList.contains('color-swatch')){
+    sw.style.background=inp.value;
+    sw.style.borderColor=inp.value;
+  }
+}
+function syncSwatches(){
+  document.querySelectorAll('.color-swatch input[type=color]').forEach(function(inp){
+    var sw=inp.parentElement;
+    if(sw){sw.style.background=inp.value;sw.style.borderColor=inp.value;}
+  });
+}
+
+
+// ── i18n DESIGNER ──
+var D_LANGS = {
+  ru: {
+    logo_text:'CAROUSEL', btn_back:'← Назад', sec_global:'Стиль и цвета',
+    sec_cover:'Обложка', sec_content:'Контент', sec_cta_tag:'ПРИЗЫВ',
+    sh_colors:'Цвета', sh_fonts:'Шрифты', sh_slidesize:'Размер слайда',
+    sh_texts:'Тексты', sh_sizes:'Размеры', sh_fontscol:'Шрифты и цвета',
+    sh_covphoto:'Фото обложки', sh_logo:'Логотип',
+    sh_cntphoto:'Фото слайда', sh_ctaphoto:'Фото CTA',
+    lbl_tag:'Тег', lbl_title1:'Заголовок 1', lbl_title2:'Заголовок 2', lbl_sub:'Субтайтл',
+    lbl_slideno:'Номер слайда', lbl_heading:'Заголовок', lbl_bodytext:'Текст',
+    lbl_question:'Вопрос / Крючок', lbl_ctatitle1:'Загол. 1', lbl_ctatitle2:'Загол. 2',
+    lbl_body:'Body', lbl_handle:'Хэндл', lbl_fd:'Заголовочный', lbl_fb:'Текстовый', lbl_zoom:'Zoom:',
+    rl_tagpx:'Тег px', rl_t1:'Загол. 1', rl_t2:'Загол. 2', rl_sub:'Субтайтл',
+    rl_vy:'Сдвиг Y', rl_cvps:'Расстояние между блоками', rl_logopx:'Размер лого px',
+    rl_bright:'Яркость (1.0=норм, 2.0=ярче)', rl_dark:'Затемнение',
+    rl_cvy:'Сдвиг Y (↑ минус / ↓ плюс)', rl_heading:'Заголовок', rl_text:'Текст',
+    rl_question:'Вопрос', rl_spacing:'Отступ', rl_footerlogo:'Лого футер',
+    rl_width:'Ширина', rl_height:'Высота',
+    col_accent:'Акцент', col_titles:'Заголовки', col_text:'Текст', col_bg:'Фон (без фото)',
+    col_accent_tag:'Акцент (тег, загол. 2)', col_title1:'Заголовок 1', col_subtitle:'Субтайтл',
+    col_accent_no:'Акцент (номер, полоса)', col_body:'Текст body',
+    lp_left:'◀ Лево', lp_center:'● Центр', lp_right:'Право ▶',
+    cta_use_cover_lbl:'Нет фото CTA → использовать фото обложки',
+    ul_covphoto:'Загрузить фото обложки', ul_logo:'Загрузить логотип',
+    ul_cntphoto:'Загрузить фото слайда', ul_ctaphoto:'Загрузить фото CTA',
+    json_title:'Design JSON — скопируй в presets_all.json',
+    btn_copy:'📋 Копировать', btn_done:'Готово',
+    swipe_hint:'Листайте →', question_lbl:'ВОПРОС:',
+    tag_global:'GLOBAL', tag_cover:'COVER', tag_content:'СЛАЙДЫ', sec_cta:'CTA', tg_open:'Telegram открыт'
+  },
+  en: {
+    logo_text:'CAROUSEL', btn_back:'← Back', sec_global:'Style & Colors',
+    sec_cover:'Cover', sec_content:'Content', sec_cta_tag:'CTA',
+    sh_colors:'Colors', sh_fonts:'Fonts', sh_slidesize:'Slide size',
+    sh_texts:'Texts', sh_sizes:'Sizes', sh_fontscol:'Fonts & Colors',
+    sh_covphoto:'Cover photo', sh_logo:'Logo',
+    sh_cntphoto:'Slide photo', sh_ctaphoto:'CTA photo',
+    lbl_tag:'Tag', lbl_title1:'Headline 1', lbl_title2:'Headline 2', lbl_sub:'Subtitle',
+    lbl_slideno:'Slide number', lbl_heading:'Heading', lbl_bodytext:'Text',
+    lbl_question:'Question / Hook', lbl_ctatitle1:'Title 1', lbl_ctatitle2:'Title 2',
+    lbl_body:'Body', lbl_handle:'Handle', lbl_fd:'Display font', lbl_fb:'Body font', lbl_zoom:'Zoom:',
+    rl_tagpx:'Tag px', rl_t1:'Title 1', rl_t2:'Title 2', rl_sub:'Subtitle',
+    rl_vy:'Offset Y', rl_cvps:'Block spacing', rl_logopx:'Logo size px',
+    rl_bright:'Brightness (1.0=normal, 2.0=brighter)', rl_dark:'Overlay',
+    rl_cvy:'Offset Y (↑ minus / ↓ plus)', rl_heading:'Heading', rl_text:'Text',
+    rl_question:'Question', rl_spacing:'Spacing', rl_footerlogo:'Footer logo',
+    rl_width:'Width', rl_height:'Height',
+    col_accent:'Accent', col_titles:'Headings', col_text:'Text', col_bg:'Background (no photo)',
+    col_accent_tag:'Accent (tag, title 2)', col_title1:'Headline 1', col_subtitle:'Subtitle',
+    col_accent_no:'Accent (number, bar)', col_body:'Body text',
+    lp_left:'◀ Left', lp_center:'● Center', lp_right:'Right ▶',
+    cta_use_cover_lbl:'No CTA photo → use cover photo',
+    ul_covphoto:'Upload cover photo', ul_logo:'Upload logo',
+    ul_cntphoto:'Upload slide photo', ul_ctaphoto:'Upload CTA photo',
+    json_title:'Design JSON — paste into presets_all.json',
+    btn_copy:'📋 Copy', btn_done:'Done',
+    swipe_hint:'Swipe →', question_lbl:'QUESTION:',
+    tag_global:'GLOBAL', tag_cover:'COVER', tag_content:'SLIDES', sec_cta:'CTA', tg_open:'Telegram open'
+  },
+  pl: {
+    logo_text:'KARUZELA', btn_back:'← Wróć', sec_global:'Styl i kolory',
+    sec_cover:'Okładka', sec_content:'Treść', sec_cta_tag:'WEZWANIE',
+    sh_colors:'Kolory', sh_fonts:'Czcionki', sh_slidesize:'Rozmiar slajdu',
+    sh_texts:'Teksty', sh_sizes:'Rozmiary', sh_fontscol:'Czcionki i kolory',
+    sh_covphoto:'Zdjęcie okładki', sh_logo:'Logo',
+    sh_cntphoto:'Zdjęcie slajdu', sh_ctaphoto:'Zdjęcie CTA',
+    lbl_tag:'Tag', lbl_title1:'Nagłówek 1', lbl_title2:'Nagłówek 2', lbl_sub:'Podtytuł',
+    lbl_slideno:'Numer slajdu', lbl_heading:'Nagłówek', lbl_bodytext:'Tekst',
+    lbl_question:'Pytanie / Haczyk', lbl_ctatitle1:'Tytuł 1', lbl_ctatitle2:'Tytuł 2',
+    lbl_body:'Body', lbl_handle:'Handle', lbl_fd:'Czcionka tytułowa', lbl_fb:'Czcionka tekstu', lbl_zoom:'Zoom:',
+    rl_tagpx:'Tag px', rl_t1:'Tytuł 1', rl_t2:'Tytuł 2', rl_sub:'Podtytuł',
+    rl_vy:'Przesunięcie Y', rl_cvps:'Odstęp między blokami', rl_logopx:'Rozmiar logo px',
+    rl_bright:'Jasność (1.0=norma, 2.0=jaśniej)', rl_dark:'Przyciemnienie',
+    rl_cvy:'Przesunięcie Y (↑ minus / ↓ plus)', rl_heading:'Nagłówek', rl_text:'Tekst',
+    rl_question:'Pytanie', rl_spacing:'Odstęp', rl_footerlogo:'Logo stopki',
+    rl_width:'Szerokość', rl_height:'Wysokość',
+    col_accent:'Akcent', col_titles:'Nagłówki', col_text:'Tekst', col_bg:'Tło (bez zdjęcia)',
+    col_accent_tag:'Akcent (tag, tytuł 2)', col_title1:'Nagłówek 1', col_subtitle:'Podtytuł',
+    col_accent_no:'Akcent (numer, pasek)', col_body:'Tekst body',
+    lp_left:'◀ Lewo', lp_center:'● Środek', lp_right:'Prawo ▶',
+    cta_use_cover_lbl:'Brak zdjęcia CTA → użyj zdjęcia okładki',
+    ul_covphoto:'Prześlij zdjęcie okładki', ul_logo:'Prześlij logo',
+    ul_cntphoto:'Prześlij zdjęcie slajdu', ul_ctaphoto:'Prześlij zdjęcie CTA',
+    json_title:'Design JSON — wklej do presets_all.json',
+    btn_copy:'📋 Kopiuj', btn_done:'Gotowe',
+    swipe_hint:'Przesuń →', question_lbl:'PYTANIE:',
+    tag_global:'GLOBAL', tag_cover:'COVER', tag_content:'SLAJDY', sec_cta:'CTA', tg_open:'Telegram otwarty'
+  },
+  de: {
+    logo_text:'KARUSSELL', btn_back:'← Zurück', sec_global:'Stil & Farben',
+    sec_cover:'Cover', sec_content:'Inhalt', sec_cta_tag:'CTA',
+    sh_colors:'Farben', sh_fonts:'Schriften', sh_slidesize:'Foliengröße',
+    sh_texts:'Texte', sh_sizes:'Größen', sh_fontscol:'Schriften & Farben',
+    sh_covphoto:'Cover-Foto', sh_logo:'Logo',
+    sh_cntphoto:'Folien-Foto', sh_ctaphoto:'CTA-Foto',
+    lbl_tag:'Tag', lbl_title1:'Titel 1', lbl_title2:'Titel 2', lbl_sub:'Untertitel',
+    lbl_slideno:'Foliennummer', lbl_heading:'Überschrift', lbl_bodytext:'Text',
+    lbl_question:'Frage / Hook', lbl_ctatitle1:'Titel 1', lbl_ctatitle2:'Titel 2',
+    lbl_body:'Body', lbl_handle:'Handle', lbl_fd:'Titelschrift', lbl_fb:'Textschrift', lbl_zoom:'Zoom:',
+    rl_tagpx:'Tag px', rl_t1:'Titel 1', rl_t2:'Titel 2', rl_sub:'Untertitel',
+    rl_vy:'Versatz Y', rl_cvps:'Blockabstand', rl_logopx:'Logo-Größe px',
+    rl_bright:'Helligkeit (1.0=normal, 2.0=heller)', rl_dark:'Abdunkeln',
+    rl_cvy:'Versatz Y (↑ minus / ↓ plus)', rl_heading:'Überschrift', rl_text:'Text',
+    rl_question:'Frage', rl_spacing:'Abstand', rl_footerlogo:'Footer-Logo',
+    rl_width:'Breite', rl_height:'Höhe',
+    col_accent:'Akzent', col_titles:'Überschriften', col_text:'Text', col_bg:'Hintergrund (ohne Foto)',
+    col_accent_tag:'Akzent (Tag, Titel 2)', col_title1:'Titel 1', col_subtitle:'Untertitel',
+    col_accent_no:'Akzent (Nummer, Balken)', col_body:'Body-Text',
+    lp_left:'◀ Links', lp_center:'● Mitte', lp_right:'Rechts ▶',
+    cta_use_cover_lbl:'Kein CTA-Foto → Cover-Foto verwenden',
+    ul_covphoto:'Cover-Foto hochladen', ul_logo:'Logo hochladen',
+    ul_cntphoto:'Folien-Foto hochladen', ul_ctaphoto:'CTA-Foto hochladen',
+    json_title:'Design JSON — in presets_all.json einfügen',
+    btn_copy:'📋 Kopieren', btn_done:'Fertig',
+    swipe_hint:'Weiter →', question_lbl:'FRAGE:',
+    tag_global:'GLOBAL', tag_cover:'COVER', tag_content:'FOLIEN', sec_cta:'CTA', tg_open:'Telegram offen'
+  },
+  es: {
+    logo_text:'CARRUSEL', btn_back:'← Volver', sec_global:'Estilo y colores',
+    sec_cover:'Portada', sec_content:'Contenido', sec_cta_tag:'CTA',
+    sh_colors:'Colores', sh_fonts:'Fuentes', sh_slidesize:'Tamaño de diapositiva',
+    sh_texts:'Textos', sh_sizes:'Tamaños', sh_fontscol:'Fuentes y colores',
+    sh_covphoto:'Foto de portada', sh_logo:'Logo',
+    sh_cntphoto:'Foto de diapositiva', sh_ctaphoto:'Foto CTA',
+    lbl_tag:'Etiqueta', lbl_title1:'Título 1', lbl_title2:'Título 2', lbl_sub:'Subtítulo',
+    lbl_slideno:'Número de diapositiva', lbl_heading:'Encabezado', lbl_bodytext:'Texto',
+    lbl_question:'Pregunta / Gancho', lbl_ctatitle1:'Título 1', lbl_ctatitle2:'Título 2',
+    lbl_body:'Body', lbl_handle:'Handle', lbl_fd:'Fuente de título', lbl_fb:'Fuente de texto', lbl_zoom:'Zoom:',
+    rl_tagpx:'Etiqueta px', rl_t1:'Título 1', rl_t2:'Título 2', rl_sub:'Subtítulo',
+    rl_vy:'Desplazamiento Y', rl_cvps:'Espacio entre bloques', rl_logopx:'Tamaño logo px',
+    rl_bright:'Brillo (1.0=normal, 2.0=más brillante)', rl_dark:'Oscurecer',
+    rl_cvy:'Desplazamiento Y (↑ menos / ↓ más)', rl_heading:'Encabezado', rl_text:'Texto',
+    rl_question:'Pregunta', rl_spacing:'Espaciado', rl_footerlogo:'Logo pie de página',
+    rl_width:'Ancho', rl_height:'Alto',
+    col_accent:'Acento', col_titles:'Títulos', col_text:'Texto', col_bg:'Fondo (sin foto)',
+    col_accent_tag:'Acento (etiqueta, título 2)', col_title1:'Título 1', col_subtitle:'Subtítulo',
+    col_accent_no:'Acento (número, barra)', col_body:'Texto body',
+    lp_left:'◀ Izquierda', lp_center:'● Centro', lp_right:'Derecha ▶',
+    cta_use_cover_lbl:'Sin foto CTA → usar foto de portada',
+    ul_covphoto:'Subir foto de portada', ul_logo:'Subir logo',
+    ul_cntphoto:'Subir foto de diapositiva', ul_ctaphoto:'Subir foto CTA',
+    json_title:'Design JSON — pegar en presets_all.json',
+    btn_copy:'📋 Copiar', btn_done:'Listo',
+    swipe_hint:'Desliza →', question_lbl:'PREGUNTA:',
+    tag_global:'GLOBAL', tag_cover:'COVER', tag_content:'DIAPS',  sec_cta:'CTA', tg_open:'Telegram abierto'
+  },
+  fr: {
+    logo_text:'CARROUSEL', btn_back:'← Retour', sec_global:'Style et couleurs',
+    sec_cover:'Couverture', sec_content:'Contenu', sec_cta_tag:'CTA',
+    sh_colors:'Couleurs', sh_fonts:'Polices', sh_slidesize:'Taille de diapositive',
+    sh_texts:'Textes', sh_sizes:'Tailles', sh_fontscol:'Polices et couleurs',
+    sh_covphoto:'Photo de couverture', sh_logo:'Logo',
+    sh_cntphoto:'Photo de diapositive', sh_ctaphoto:'Photo CTA',
+    lbl_tag:'Tag', lbl_title1:'Titre 1', lbl_title2:'Titre 2', lbl_sub:'Sous-titre',
+    lbl_slideno:'Numéro de diapositive', lbl_heading:'Titre', lbl_bodytext:'Texte',
+    lbl_question:'Question / Accroche', lbl_ctatitle1:'Titre 1', lbl_ctatitle2:'Titre 2',
+    lbl_body:'Body', lbl_handle:'Handle', lbl_fd:'Police de titre', lbl_fb:'Police de texte', lbl_zoom:'Zoom :',
+    rl_tagpx:'Tag px', rl_t1:'Titre 1', rl_t2:'Titre 2', rl_sub:'Sous-titre',
+    rl_vy:'Décalage Y', rl_cvps:'Espacement blocs', rl_logopx:'Taille logo px',
+    rl_bright:'Luminosité (1.0=normal, 2.0=plus clair)', rl_dark:'Assombrir',
+    rl_cvy:'Décalage Y (↑ moins / ↓ plus)', rl_heading:'Titre', rl_text:'Texte',
+    rl_question:'Question', rl_spacing:'Espacement', rl_footerlogo:'Logo pied de page',
+    rl_width:'Largeur', rl_height:'Hauteur',
+    col_accent:'Accent', col_titles:'Titres', col_text:'Texte', col_bg:'Fond (sans photo)',
+    col_accent_tag:'Accent (tag, titre 2)', col_title1:'Titre 1', col_subtitle:'Sous-titre',
+    col_accent_no:'Accent (numéro, barre)', col_body:'Texte body',
+    lp_left:'◀ Gauche', lp_center:'● Centre', lp_right:'Droite ▶',
+    cta_use_cover_lbl:'Pas de photo CTA → utiliser photo couverture',
+    ul_covphoto:'Télécharger photo couverture', ul_logo:'Télécharger logo',
+    ul_cntphoto:'Télécharger photo diapo', ul_ctaphoto:'Télécharger photo CTA',
+    json_title:'Design JSON — coller dans presets_all.json',
+    btn_copy:'📋 Copier', btn_done:'Terminé',
+    swipe_hint:'Glissez →', question_lbl:'QUESTION :',
+    tag_global:'GLOBAL', tag_cover:'COVER', tag_content:'DIAPAS', sec_cta:'CTA', tg_open:'Telegram ouvert'
+  },
+  pt: {
+    logo_text:'CARROSSEL', btn_back:'← Voltar', sec_global:'Estilo e cores',
+    sec_cover:'Capa', sec_content:'Conteúdo', sec_cta_tag:'CTA',
+    sh_colors:'Cores', sh_fonts:'Fontes', sh_slidesize:'Tamanho do slide',
+    sh_texts:'Textos', sh_sizes:'Tamanhos', sh_fontscol:'Fontes e cores',
+    sh_covphoto:'Foto de capa', sh_logo:'Logo',
+    sh_cntphoto:'Foto do slide', sh_ctaphoto:'Foto CTA',
+    lbl_tag:'Tag', lbl_title1:'Título 1', lbl_title2:'Título 2', lbl_sub:'Subtítulo',
+    lbl_slideno:'Número do slide', lbl_heading:'Título', lbl_bodytext:'Texto',
+    lbl_question:'Pergunta / Gancho', lbl_ctatitle1:'Título 1', lbl_ctatitle2:'Título 2',
+    lbl_body:'Body', lbl_handle:'Handle', lbl_fd:'Fonte de título', lbl_fb:'Fonte de texto', lbl_zoom:'Zoom:',
+    rl_tagpx:'Tag px', rl_t1:'Título 1', rl_t2:'Título 2', rl_sub:'Subtítulo',
+    rl_vy:'Deslocamento Y', rl_cvps:'Espaço entre blocos', rl_logopx:'Tamanho logo px',
+    rl_bright:'Brilho (1.0=normal, 2.0=mais brilhante)', rl_dark:'Escurecer',
+    rl_cvy:'Deslocamento Y (↑ menos / ↓ mais)', rl_heading:'Título', rl_text:'Texto',
+    rl_question:'Pergunta', rl_spacing:'Espaçamento', rl_footerlogo:'Logo rodapé',
+    rl_width:'Largura', rl_height:'Altura',
+    col_accent:'Acento', col_titles:'Títulos', col_text:'Texto', col_bg:'Fundo (sem foto)',
+    col_accent_tag:'Acento (tag, título 2)', col_title1:'Título 1', col_subtitle:'Subtítulo',
+    col_accent_no:'Acento (número, barra)', col_body:'Texto body',
+    lp_left:'◀ Esquerda', lp_center:'● Centro', lp_right:'Direita ▶',
+    cta_use_cover_lbl:'Sem foto CTA → usar foto de capa',
+    ul_covphoto:'Enviar foto de capa', ul_logo:'Enviar logo',
+    ul_cntphoto:'Enviar foto do slide', ul_ctaphoto:'Enviar foto CTA',
+    json_title:'Design JSON — colar em presets_all.json',
+    btn_copy:'📋 Copiar', btn_done:'Pronto',
+    swipe_hint:'Deslize →', question_lbl:'PERGUNTA:',
+    tag_global:'GLOBAL', tag_cover:'COVER', tag_content:'SLIDES', sec_cta:'CTA', tg_open:'Telegram aberto'
+  }
+};
+
+var curLangD = 'ru';
+
+function setLangD(l) {
+  if(!D_LANGS[l]) return;
+  curLangD = l;
+  var t = D_LANGS[l];
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var key = el.getAttribute('data-i18n');
+    if(t[key] !== undefined) el.textContent = t[key];
+  });
+  document.querySelectorAll('.dlbtn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-l') === l);
+  });
+  try { localStorage.setItem('carousel_lang', l); } catch(e){}
+  R();
+}
+
+// ── START ──
+loadFonts();
+syncSwatches();
+try {
+  var _sl = localStorage.getItem('carousel_lang');
+  setLangD((_sl && D_LANGS[_sl]) ? _sl : 'ru');
+} catch(e) { setLangD('ru'); }
+drawAll();
+dbg('✓ Конструктор v2 готов');
+setTimeout(function(){syncSwatches();drawAll();},800);
+setTimeout(drawAll,1600);
+
+</script>
+</body>
+</html>
