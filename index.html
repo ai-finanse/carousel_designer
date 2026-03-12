@@ -593,6 +593,52 @@ var DESIGNS = {
   anime:  { color_accent:'#FF69B4', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.4, content_bg_brightness:0.15, cover_overlay:0.6, content_overlay:0.65 },
   tv:     { color_accent:'#FF6600', font_display:'Barlow Condensed', font_body:'Barlow', bg_brightness:0.65, content_bg_brightness:0.2, cover_overlay:0.5, content_overlay:0.6 }
 };
+// ════════════════════════════════════════════════
+// PRESET SLIDESHOW — вставить в index.html
+// ПЕРЕД функцией selP (строка ~597)
+// ════════════════════════════════════════════════
+
+function initPresetSlideshows() {
+  if(typeof PRESET_SLIDES === 'undefined') return;
+  document.querySelectorAll('.preset-card').forEach(function(card) {
+    var key = card.getAttribute('data-preset');
+    var urls = PRESET_SLIDES[key];
+    if(!urls || !urls.length) return;
+    var thumb = card.querySelector('.preset-thumb');
+    if(!thumb) return;
+
+    // Фото поверх CSS-заглушки
+    var imgEl = document.createElement('img');
+    imgEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s;z-index:1;';
+    thumb.insertBefore(imgEl, thumb.firstChild);
+
+    var idx = 0;
+    function showSlide(i) {
+      var url = urls[i % urls.length];
+      if(!url) return;
+      var tmp = new Image();
+      tmp.onload = function() { imgEl.src = url; imgEl.style.opacity = '0.88'; };
+      tmp.src = url;
+    }
+
+    showSlide(0); // первый слайд сразу
+
+    var timer = null;
+    card.addEventListener('mouseenter', function() {
+      idx = 1;
+      timer = setInterval(function() { showSlide(idx++); }, 900);
+    });
+    card.addEventListener('mouseleave', function() {
+      clearInterval(timer);
+      idx = 0;
+      showSlide(0);
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(initPresetSlideshows, 300);
+});
 
 function selP(card) {
   document.querySelectorAll('.preset-card').forEach(function(c){ c.classList.remove('selected'); });
